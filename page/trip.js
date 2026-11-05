@@ -1,5 +1,6 @@
 import { Colors, Layout, Type } from '../utils/theme'
 import { t } from '../utils/i18n'
+import { getRouteSteps } from '../utils/routeSimulator'
 import { clearSession, getSelectedDestination } from '../utils/session'
 import {
   destroyHaptics,
@@ -9,60 +10,50 @@ import {
   vibrateWarning
 } from '../utils/haptics'
 
-const STAGES = [
-  {
+const STAGE_STYLES = {
+  MONITORING: {
     statusKey: 'trip_status_monitoring',
-    distance: '3.2 km',
-    eta: '12 min',
     cardColor: Colors.Navy900,
     accentColor: Colors.Mint400,
     textColor: Colors.Mint400,
-    progressWidth: 16,
     progressColor: Colors.Mint400,
     haptic: null
   },
-  {
+  EARLY_ALERT: {
     statusKey: 'trip_status_early',
-    distance: '1.5 km',
-    eta: '5 min',
     cardColor: Colors.Navy700,
     accentColor: Colors.Amber400,
     textColor: Colors.Amber400,
-    progressWidth: 80,
     progressColor: Colors.Amber400,
     haptic: 'short'
   },
-  {
+  NEAR: {
     statusKey: 'trip_status_near',
-    distance: '0.3 km',
-    eta: '1 min',
     cardColor: Colors.Coral400,
     accentColor: Colors.Amber400,
     textColor: Colors.Ink,
-    progressWidth: 144,
     progressColor: Colors.Coral400,
     haptic: 'warning'
   },
-  {
+  ARRIVED: {
     statusKey: 'trip_status_arrived',
-    distance: '0.0 km',
-    etaKey: 'trip_now',
     cardColor: Colors.Coral400,
     accentColor: Colors.White,
     textColor: Colors.Ink,
-    progressWidth: 160,
     progressColor: Colors.Coral400,
     haptic: 'warning'
   }
-]
+}
 
 let timerId = null
 let stageIndex = 0
 let journeyCompleted = false
+let routeSteps = []
 let alertCard = null
 let alertAccent = null
 let statusText = null
 let progressIndicator = null
+let nextStopText = null
 let distanceText = null
 let etaText = null
 let finishButton = null
@@ -89,7 +80,12 @@ function keepScreenAwakeForAlert() {
 }
 
 function updateTripUi(shouldVibrate) {
-  const stage = STAGES[stageIndex]
+  const routeStep = routeSteps[stageIndex]
+  const stage = STAGE_STYLES[routeStep.state] || STAGE_STYLES.MONITORING
+  const progressWidth = Math.max(
+    1,
+    Math.round(Layout.contentWidth * routeStep.progress)
+  )
 
   alertCard.setProperty(hmUI.prop.MORE, {
     x: Layout.leftMargin,
@@ -122,18 +118,19 @@ function updateTripUi(shouldVibrate) {
   progressIndicator.setProperty(hmUI.prop.MORE, {
     x: Layout.leftMargin,
     y: 205,
-    w: stage.progressWidth,
+    w: progressWidth,
     h: 6,
     radius: 3,
     color: stage.progressColor
   })
-  distanceText.setProperty(hmUI.prop.TEXT, stage.distance)
+  nextStopText.setProperty(hmUI.prop.TEXT, routeStep.stop)
+  distanceText.setProperty(hmUI.prop.TEXT, routeStep.distance)
   etaText.setProperty(
     hmUI.prop.TEXT,
-    stage.etaKey ? t(stage.etaKey) : stage.eta
+    routeStep.state === 'ARRIVED' ? t('trip_now') : routeStep.eta
   )
 
-  if (stageIndex === STAGES.length - 1) {
+  if (stageIndex === routeSteps.length - 1) {
     finishButton.setProperty(hmUI.prop.MORE, {
       x: Layout.leftMargin,
       y: 360,
@@ -146,11 +143,13 @@ function updateTripUi(shouldVibrate) {
 
   if (shouldVibrate && stage.haptic === 'short') vibrateShort()
   if (shouldVibrate && stage.haptic === 'warning') vibrateWarning()
-  if (stageIndex >= 2) keepScreenAwakeForAlert()
+  if (routeStep.state === 'NEAR' || routeStep.state === 'ARRIVED') {
+    keepScreenAwakeForAlert()
+  }
 }
 
 function advanceSimulation() {
-  if (stageIndex >= STAGES.length - 1) {
+  if (stageIndex >= routeSteps.length - 1) {
     stopSimulation()
     return
   }
@@ -158,7 +157,7 @@ function advanceSimulation() {
   stageIndex += 1
   updateTripUi(true)
 
-  if (stageIndex === STAGES.length - 1) {
+  if (stageIndex === routeSteps.length - 1) {
     journeyCompleted = true
     stopSimulation()
   }
@@ -171,6 +170,7 @@ Page({
     journeyCompleted = false
 
     const selectedDestination = getSelectedDestination() || 'home'
+    routeSteps = getRouteSteps(selectedDestination)
     const destinationName = t(`dest_${selectedDestination}`)
 
     hmUI.createWidget(hmUI.widget.FILL_RECT, {
@@ -249,17 +249,42 @@ Page({
     progressIndicator = hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: Layout.leftMargin,
       y: 205,
-      w: STAGES[0].progressWidth,
+      w: Math.round(Layout.contentWidth * routeSteps[0].progress),
       h: 6,
       radius: 3,
-      color: STAGES[0].progressColor
+      color: STAGE_STYLES[routeSteps[0].state].progressColor
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 223,
+      y: 218,
       w: Layout.contentWidth,
-      h: 16,
+      h: 14,
+      text: t('trip_next_stop'),
+      text_size: 11,
+      color: Colors.Slate350,
+      align_h: hmUI.align.CENTER_H,
+      align_v: hmUI.align.CENTER_V
+    })
+
+    nextStopText = hmUI.createWidget(hmUI.widget.TEXT, {
+      x: Layout.leftMargin,
+      y: 234,
+      w: Layout.contentWidth,
+      h: 20,
+      text: routeSteps[0].stop,
+      text_size: 13,
+      color: Colors.White,
+      align_h: hmUI.align.CENTER_H,
+      align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.WRAP
+    })
+
+    hmUI.createWidget(hmUI.widget.TEXT, {
+      x: Layout.leftMargin,
+      y: 258,
+      w: Layout.contentWidth,
+      h: 14,
       text: t('trip_distance_remaining'),
       text_size: 11,
       color: Colors.Slate350,
@@ -269,11 +294,11 @@ Page({
 
     distanceText = hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 242,
+      y: 273,
       w: Layout.contentWidth,
-      h: 36,
-      text: STAGES[0].distance,
-      text_size: Type.headline,
+      h: 26,
+      text: routeSteps[0].distance,
+      text_size: Type.brand,
       color: Colors.White,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V
@@ -281,9 +306,9 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 282,
+      y: 301,
       w: Layout.contentWidth,
-      h: 16,
+      h: 14,
       text: t('trip_eta_remaining'),
       text_size: 11,
       color: Colors.Slate350,
@@ -293,11 +318,11 @@ Page({
 
     etaText = hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 300,
+      y: 316,
       w: Layout.contentWidth,
-      h: 30,
-      text: STAGES[0].eta,
-      text_size: Type.brand,
+      h: 24,
+      text: routeSteps[0].eta,
+      text_size: Type.button,
       color: Colors.Cyan500,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V
@@ -336,8 +361,10 @@ Page({
     alertAccent = null
     statusText = null
     progressIndicator = null
+    nextStopText = null
     distanceText = null
     etaText = null
     finishButton = null
+    routeSteps = []
   }
 })
