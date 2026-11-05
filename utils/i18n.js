@@ -116,8 +116,20 @@ export function getLanguage() {
 }
 
 export function t(key) {
+  if (key === null || key === undefined) return ''
+
+  const normalizedKey = String(key)
   const language = getLanguage()
-  return (strings[language] && strings[language][key]) ||
-    strings.es[key] ||
-    key
+  const fallbackLanguage = language === 'es' ? 'en' : 'es'
+  const activeStrings = strings[language] || strings.es
+  const fallbackStrings = strings[fallbackLanguage] || strings.es
+
+  if (activeStrings[normalizedKey] !== undefined) {
+    return activeStrings[normalizedKey]
+  }
+  if (fallbackStrings[normalizedKey] !== undefined) {
+    return fallbackStrings[normalizedKey]
+  }
+
+  return normalizedKey
 }
