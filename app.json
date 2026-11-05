@@ -30,7 +30,8 @@
             "page/index",
             "page/destination",
             "page/confirmation",
-            "page/trip"
+            "page/trip",
+            "page/settings"
           ]
         }
       },
