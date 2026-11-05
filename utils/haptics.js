@@ -26,6 +26,25 @@ export function vibrateShort() {
   }, {})
 }
 
+export function vibrateWarning() {
+  initHaptics()
+
+  if (stopTimerId !== null) {
+    timer.stopTimer(stopTimerId)
+    stopTimerId = null
+  }
+
+  vibrator.stop()
+  vibrator.scene = 5
+  vibrator.start()
+
+  stopTimerId = timer.createTimer(500, 2147483647, function () {
+    vibrator.stop()
+    timer.stopTimer(stopTimerId)
+    stopTimerId = null
+  }, {})
+}
+
 export function destroyHaptics() {
   if (stopTimerId !== null) {
     timer.stopTimer(stopTimerId)
