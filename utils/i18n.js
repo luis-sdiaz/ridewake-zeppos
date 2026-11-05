@@ -6,6 +6,16 @@ const strings = {
     home_status: 'LISTO PARA ACOMPAÑARTE',
     btn_start_trip: 'Iniciar viaje',
     btn_settings: 'Ajustes',
+    settings_title: 'AJUSTES',
+    settings_lang_label: 'Idioma',
+    settings_lang_btn: 'Español / English',
+    settings_haptic_label: 'Vibración',
+    settings_haptic_normal: 'Normal',
+    settings_haptic_strong: 'Intensa',
+    settings_about_label: 'Acerca de',
+    settings_version: 'RideWake Band v1.0.0',
+    settings_target: 'Xiaomi Band 7 (Zepp OS)',
+    settings_btn_back: 'Volver',
     dest_header: 'DESTINO',
     dest_subtitle: '¿A dónde vas?',
     dest_title: '¿A dónde vas?',
@@ -43,6 +53,16 @@ const strings = {
     home_status: 'READY TO RIDE WITH YOU',
     btn_start_trip: 'Start trip',
     btn_settings: 'Settings',
+    settings_title: 'SETTINGS',
+    settings_lang_label: 'Language',
+    settings_lang_btn: 'Español / English',
+    settings_haptic_label: 'Vibration',
+    settings_haptic_normal: 'Normal',
+    settings_haptic_strong: 'Strong',
+    settings_about_label: 'About',
+    settings_version: 'RideWake Band v1.0.0',
+    settings_target: 'Xiaomi Band 7 (Zepp OS)',
+    settings_btn_back: 'Back',
     dest_header: 'DESTINATION',
     dest_subtitle: 'Where to?',
     dest_title: 'Choose destination',
@@ -77,16 +97,27 @@ const strings = {
 
 let currentLang = 'es'
 
+function getGlobalState() {
+  const app = getApp()
+  if (!app._options.globalData) app._options.globalData = {}
+  return app._options.globalData
+}
+
 export function setLanguage(lang) {
-  if (strings[lang]) currentLang = lang
+  if (strings[lang]) {
+    currentLang = lang
+    getGlobalState().language = lang
+  }
 }
 
 export function getLanguage() {
-  return currentLang
+  const savedLanguage = getGlobalState().language
+  return strings[savedLanguage] ? savedLanguage : currentLang
 }
 
 export function t(key) {
-  return (strings[currentLang] && strings[currentLang][key]) ||
+  const language = getLanguage()
+  return (strings[language] && strings[language][key]) ||
     strings.es[key] ||
     key
 }
