@@ -1,0 +1,55 @@
+{
+  "configVersion": "v2",
+  "app": {
+    "appId": 1000000,
+    "appName": "RideWake AI",
+    "appType": "app",
+    "version": {
+      "code": 1,
+      "name": "1.0.0"
+    },
+    "icon": "icon.png",
+    "vender": "RideWake",
+    "description": "Predictive stop alerts for public transport passengers"
+  },
+  "permissions": [
+    "device:os.vibrate"
+  ],
+  "runtime": {
+    "apiVersion": {
+      "compatible": "1.0.0",
+      "target": "1.0.1",
+      "minVersion": "1.0.0"
+    }
+  },
+  "targets": {
+    "band-7": {
+      "module": {
+        "page": {
+          "pages": [
+            "page/index",
+            "page/destination",
+            "page/confirmation",
+            "page/trip"
+          ]
+        }
+      },
+      "platforms": [
+        {
+          "name": "xiaomi-smart-band-7-international",
+          "deviceSource": 263
+        }
+      ],
+      "designWidth": 192
+    }
+  },
+  "i18n": {
+    "es-ES": {
+      "appName": "RideWake AI"
+    },
+    "en-US": {
+      "appName": "RideWake AI"
+    }
+  },
+  "defaultLanguage": "es-ES"
+}
