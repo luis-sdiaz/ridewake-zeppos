@@ -4,6 +4,7 @@ import { clearSession, getSelectedDestination } from '../utils/session'
 import {
   destroyHaptics,
   initHaptics,
+  stopVibration,
   vibrateShort,
   vibrateWarning
 } from '../utils/haptics'
@@ -16,6 +17,8 @@ const STAGES = [
     cardColor: Colors.Navy900,
     accentColor: Colors.Mint400,
     textColor: Colors.Mint400,
+    progressWidth: 16,
+    progressColor: Colors.Mint400,
     haptic: null
   },
   {
@@ -25,6 +28,8 @@ const STAGES = [
     cardColor: Colors.Navy700,
     accentColor: Colors.Amber400,
     textColor: Colors.Amber400,
+    progressWidth: 80,
+    progressColor: Colors.Amber400,
     haptic: 'short'
   },
   {
@@ -34,6 +39,8 @@ const STAGES = [
     cardColor: Colors.Coral400,
     accentColor: Colors.Amber400,
     textColor: Colors.Ink,
+    progressWidth: 144,
+    progressColor: Colors.Coral400,
     haptic: 'warning'
   },
   {
@@ -43,23 +50,41 @@ const STAGES = [
     cardColor: Colors.Coral400,
     accentColor: Colors.White,
     textColor: Colors.Ink,
+    progressWidth: 160,
+    progressColor: Colors.Coral400,
     haptic: 'warning'
   }
 ]
 
-let simulationTimer = null
+let timerId = null
 let stageIndex = 0
+let journeyCompleted = false
 let alertCard = null
 let alertAccent = null
 let statusText = null
+let progressIndicator = null
 let distanceText = null
 let etaText = null
 let finishButton = null
 
 function stopSimulation() {
-  if (simulationTimer !== null) {
-    timer.stopTimer(simulationTimer)
-    simulationTimer = null
+  if (timerId !== null) {
+    try {
+      timer.stopTimer(timerId)
+    } catch (error) {
+      console.log('Unable to stop trip timer')
+    }
+    timerId = null
+  }
+}
+
+function keepScreenAwakeForAlert() {
+  try {
+    if (typeof hmSetting !== 'undefined' && hmSetting.setBrightScreen) {
+      hmSetting.setBrightScreen(30)
+    }
+  } catch (error) {
+    console.log('Bright screen control unavailable')
   }
 }
 
@@ -94,6 +119,14 @@ function updateTripUi(shouldVibrate) {
     align_v: hmUI.align.CENTER_V,
     text_style: hmUI.text_style.WRAP
   })
+  progressIndicator.setProperty(hmUI.prop.MORE, {
+    x: Layout.leftMargin,
+    y: 205,
+    w: stage.progressWidth,
+    h: 6,
+    radius: 3,
+    color: stage.progressColor
+  })
   distanceText.setProperty(hmUI.prop.TEXT, stage.distance)
   etaText.setProperty(
     hmUI.prop.TEXT,
@@ -113,6 +146,7 @@ function updateTripUi(shouldVibrate) {
 
   if (shouldVibrate && stage.haptic === 'short') vibrateShort()
   if (shouldVibrate && stage.haptic === 'warning') vibrateWarning()
+  if (stageIndex >= 2) keepScreenAwakeForAlert()
 }
 
 function advanceSimulation() {
@@ -124,13 +158,17 @@ function advanceSimulation() {
   stageIndex += 1
   updateTripUi(true)
 
-  if (stageIndex === STAGES.length - 1) stopSimulation()
+  if (stageIndex === STAGES.length - 1) {
+    journeyCompleted = true
+    stopSimulation()
+  }
 }
 
 Page({
   build() {
     initHaptics()
     stageIndex = 0
+    journeyCompleted = false
 
     const selectedDestination = getSelectedDestination() || 'home'
     const destinationName = t(`dest_${selectedDestination}`)
@@ -199,9 +237,27 @@ Page({
       text_style: hmUI.text_style.WRAP
     })
 
+    hmUI.createWidget(hmUI.widget.FILL_RECT, {
+      x: Layout.leftMargin,
+      y: 205,
+      w: Layout.contentWidth,
+      h: 6,
+      radius: 3,
+      color: Colors.Navy700
+    })
+
+    progressIndicator = hmUI.createWidget(hmUI.widget.FILL_RECT, {
+      x: Layout.leftMargin,
+      y: 205,
+      w: STAGES[0].progressWidth,
+      h: 6,
+      radius: 3,
+      color: STAGES[0].progressColor
+    })
+
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 215,
+      y: 223,
       w: Layout.contentWidth,
       h: 16,
       text: t('trip_distance_remaining'),
@@ -213,7 +269,7 @@ Page({
 
     distanceText = hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 234,
+      y: 242,
       w: Layout.contentWidth,
       h: 36,
       text: STAGES[0].distance,
@@ -225,7 +281,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 276,
+      y: 282,
       w: Layout.contentWidth,
       h: 16,
       text: t('trip_eta_remaining'),
@@ -237,7 +293,7 @@ Page({
 
     etaText = hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 294,
+      y: 300,
       w: Layout.contentWidth,
       h: 30,
       text: STAGES[0].eta,
@@ -261,21 +317,25 @@ Page({
       click_func() {
         vibrateShort()
         stopSimulation()
+        journeyCompleted = true
         clearSession()
         hmApp.gotoPage({ url: 'page/index' })
       }
     })
 
     updateTripUi(false)
-    simulationTimer = timer.createTimer(4000, 4000, advanceSimulation, {})
+    timerId = timer.createTimer(4000, 4000, advanceSimulation, {})
   },
 
   onDestroy() {
     stopSimulation()
+    stopVibration()
+    if (!journeyCompleted) clearSession()
     destroyHaptics()
     alertCard = null
     alertAccent = null
     statusText = null
+    progressIndicator = null
     distanceText = null
     etaText = null
     finishButton = null
