@@ -5,7 +5,8 @@
   "description": "RideWake AI for Xiaomi Smart Band 7 on Zepp OS 1.0",
   "scripts": {
     "build": "zeus build",
-    "preview": "zeus preview"
+    "preview": "zeus preview",
+    "test": "node test/run-all.js"
   },
   "_moduleAliases": {
     "zeppos-app-utils": "node_modules/@zeppos/zeus-cli/private-modules/zeppos-app-utils"
