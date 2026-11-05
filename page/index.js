@@ -1,12 +1,6 @@
 import { Colors, Layout, Type } from '../utils/theme'
-import { getLanguage, setLanguage, t } from '../utils/i18n'
+import { t } from '../utils/i18n'
 import { destroyHaptics, initHaptics, vibrateShort } from '../utils/haptics'
-
-let headlineWidget
-let descriptionWidget
-let statusWidget
-let startButton
-let settingsButton
 
 function textBase(y, h, size, color) {
   return {
@@ -20,26 +14,6 @@ function textBase(y, h, size, color) {
     align_v: hmUI.align.CENTER_V,
     text_style: hmUI.text_style.WRAP
   }
-}
-
-function updateLanguage() {
-  headlineWidget.setProperty(hmUI.prop.TEXT, t('home_headline'))
-  descriptionWidget.setProperty(hmUI.prop.TEXT, t('home_description'))
-  statusWidget.setProperty(hmUI.prop.TEXT, t('home_status'))
-  startButton.setProperty(hmUI.prop.MORE, {
-    x: 16,
-    y: 270,
-    w: 160,
-    h: 54,
-    text: t('btn_start_trip')
-  })
-  settingsButton.setProperty(hmUI.prop.MORE, {
-    x: 16,
-    y: 340,
-    w: 160,
-    h: 48,
-    text: t('btn_settings')
-  })
 }
 
 Page({
@@ -59,12 +33,12 @@ Page({
       text: t('brand_title')
     })
 
-    headlineWidget = hmUI.createWidget(hmUI.widget.TEXT, {
+    hmUI.createWidget(hmUI.widget.TEXT, {
       ...textBase(85, 64, Type.headline, Colors.White),
       text: t('home_headline')
     })
 
-    descriptionWidget = hmUI.createWidget(hmUI.widget.TEXT, {
+    hmUI.createWidget(hmUI.widget.TEXT, {
       ...textBase(165, 52, Type.body, Colors.Slate350),
       text: t('home_description')
     })
@@ -78,7 +52,7 @@ Page({
       color: Colors.Navy700
     })
 
-    statusWidget = hmUI.createWidget(hmUI.widget.TEXT, {
+    hmUI.createWidget(hmUI.widget.TEXT, {
       x: 32,
       y: 228,
       w: 128,
@@ -90,7 +64,7 @@ Page({
       align_v: hmUI.align.CENTER_V
     })
 
-    startButton = hmUI.createWidget(hmUI.widget.BUTTON, {
+    hmUI.createWidget(hmUI.widget.BUTTON, {
       x: 16,
       y: 270,
       w: 160,
@@ -107,7 +81,7 @@ Page({
       }
     })
 
-    settingsButton = hmUI.createWidget(hmUI.widget.BUTTON, {
+    hmUI.createWidget(hmUI.widget.BUTTON, {
       x: 16,
       y: 340,
       w: 160,
@@ -120,8 +94,7 @@ Page({
       color: Colors.White,
       click_func() {
         vibrateShort()
-        setLanguage(getLanguage() === 'es' ? 'en' : 'es')
-        updateLanguage()
+        hmApp.gotoPage({ url: 'page/settings' })
       }
     })
 
