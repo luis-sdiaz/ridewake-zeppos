@@ -9,23 +9,35 @@ export function initHaptics() {
   }
 }
 
+export function stopVibration() {
+  if (stopTimerId !== null) {
+    try {
+      timer.stopTimer(stopTimerId)
+    } catch (error) {
+      console.log('Unable to stop haptic timer')
+    }
+    stopTimerId = null
+  }
+
+  if (vibrator) {
+    try {
+      vibrator.stop()
+    } catch (error) {
+      console.log('Unable to stop vibration')
+    }
+  }
+}
+
 export function vibrateShort() {
   initHaptics()
   const duration = getHapticMode() === 'strong' ? 180 : 90
 
-  if (stopTimerId !== null) {
-    timer.stopTimer(stopTimerId)
-    stopTimerId = null
-  }
-
-  vibrator.stop()
+  stopVibration()
   vibrator.scene = 1
   vibrator.start()
 
   stopTimerId = timer.createTimer(duration, 2147483647, function () {
-    vibrator.stop()
-    timer.stopTimer(stopTimerId)
-    stopTimerId = null
+    stopVibration()
   }, {})
 }
 
@@ -33,28 +45,16 @@ export function vibrateWarning() {
   initHaptics()
   const duration = getHapticMode() === 'strong' ? 650 : 400
 
-  if (stopTimerId !== null) {
-    timer.stopTimer(stopTimerId)
-    stopTimerId = null
-  }
-
-  vibrator.stop()
+  stopVibration()
   vibrator.scene = 5
   vibrator.start()
 
   stopTimerId = timer.createTimer(duration, 2147483647, function () {
-    vibrator.stop()
-    timer.stopTimer(stopTimerId)
-    stopTimerId = null
+    stopVibration()
   }, {})
 }
 
 export function destroyHaptics() {
-  if (stopTimerId !== null) {
-    timer.stopTimer(stopTimerId)
-    stopTimerId = null
-  }
-
-  if (vibrator) vibrator.stop()
+  stopVibration()
   vibrator = null
 }
