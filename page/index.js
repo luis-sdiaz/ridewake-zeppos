@@ -1,5 +1,6 @@
-import { Colors, Layout, Type } from '../utils/theme'
+import { getTheme, Layout, Type } from '../utils/theme'
 import { t } from '../utils/i18n'
+import { getThemeMode } from '../utils/session'
 import { destroyHaptics, initHaptics, vibrateShort } from '../utils/haptics'
 
 function textBase(y, h, size, color) {
@@ -19,27 +20,28 @@ function textBase(y, h, size, color) {
 Page({
   build() {
     initHaptics()
+    const theme = getTheme(getThemeMode())
 
     hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: 0,
       y: Layout.y(0),
       w: Layout.width,
       h: Layout.height,
-      color: Colors.Navy950
+      color: theme.bg
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      ...textBase(45, 28, Type.brand, Colors.Cyan500),
+      ...textBase(45, 28, Type.brand, theme.accent),
       text: t('brand_title')
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      ...textBase(85, 64, Type.headline, Colors.White),
+      ...textBase(85, 64, Type.headline, theme.textPrimary),
       text: t('home_headline')
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      ...textBase(165, 52, Type.body, Colors.Slate350),
+      ...textBase(165, 52, Type.body, theme.textSecondary),
       text: t('home_description')
     })
 
@@ -49,7 +51,7 @@ Page({
       w: 134,
       h: 26,
       radius: 13,
-      color: Colors.Navy700
+      color: theme.btnSecondary
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
@@ -59,7 +61,7 @@ Page({
       h: 26,
       text: t('home_status'),
       text_size: 10,
-      color: Colors.Mint400,
+      color: theme.success,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V
     })
@@ -70,11 +72,11 @@ Page({
       w: 160,
       h: 54,
       radius: 27,
-      normal_color: Colors.Cyan500,
-      press_color: Colors.Mint400,
+      normal_color: theme.accent,
+      press_color: theme.success,
       text: t('btn_start_trip'),
       text_size: Type.button,
-      color: Colors.Ink,
+      color: theme.onAccent,
       click_func() {
         vibrateShort()
         hmApp.gotoPage({ url: 'page/destination' })
@@ -87,11 +89,11 @@ Page({
       w: 160,
       h: 48,
       radius: 24,
-      normal_color: Colors.Navy700,
-      press_color: Colors.DisabledSurface,
+      normal_color: theme.btnSecondary,
+      press_color: theme.cardBg,
       text: t('btn_settings'),
       text_size: Type.button,
-      color: Colors.White,
+      color: theme.textPrimary,
       click_func() {
         vibrateShort()
         hmApp.gotoPage({ url: 'page/settings' })
@@ -99,7 +101,7 @@ Page({
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      ...textBase(418, 24, Type.caption, Colors.Slate500),
+      ...textBase(418, 24, Type.caption, theme.textMuted),
       text: 'ES / EN'
     })
   },

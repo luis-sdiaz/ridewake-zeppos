@@ -1,4 +1,4 @@
-import { Colors, getTheme, Layout, Type } from '../utils/theme'
+import { getTheme, Layout, Type } from '../utils/theme'
 import { getLanguage, setLanguage, t } from '../utils/i18n'
 import {
   getHapticMode,
@@ -10,7 +10,7 @@ import { destroyHaptics, initHaptics, vibrateShort } from '../utils/haptics'
 
 let normalButton = null
 let strongButton = null
-let activeTheme = getTheme('dark')
+let activeTheme = getTheme('light')
 
 function languageName() {
   return getLanguage() === 'es' ? 'Español' : 'English'
@@ -25,11 +25,11 @@ function hapticButtonProps(x, mode, text) {
     w: 76,
     h: 42,
     radius: 12,
-    normal_color: isActive ? activeTheme.Mint400 : activeTheme.btnSecondary,
-    press_color: isActive ? activeTheme.Cyan500 : activeTheme.cardBg,
+    normal_color: isActive ? activeTheme.success : activeTheme.btnSecondary,
+    press_color: isActive ? activeTheme.accent : activeTheme.cardBg,
     text,
     text_size: Type.body,
-    color: isActive ? Colors.Ink : activeTheme.textPrimary
+    color: isActive ? activeTheme.onAccent : activeTheme.textPrimary
   }
 }
 
@@ -42,11 +42,11 @@ function themeButtonProps(x, mode, text) {
     w: 76,
     h: 42,
     radius: 12,
-    normal_color: isActive ? activeTheme.Mint400 : activeTheme.btnSecondary,
-    press_color: isActive ? activeTheme.Cyan500 : activeTheme.cardBg,
+    normal_color: isActive ? activeTheme.success : activeTheme.btnSecondary,
+    press_color: isActive ? activeTheme.accent : activeTheme.cardBg,
     text,
     text_size: Type.body,
-    color: isActive ? Colors.Ink : activeTheme.textPrimary
+    color: isActive ? activeTheme.onAccent : activeTheme.textPrimary
   }
 }
 
@@ -93,7 +93,7 @@ Page({
       h: 24,
       text: t('settings_title'),
       text_size: Type.button,
-      color: activeTheme.Cyan500,
+      color: activeTheme.accent,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V
     })
@@ -220,7 +220,7 @@ Page({
       h: 24,
       text: t('settings_target'),
       text_size: 11,
-      color: activeTheme.Cyan500,
+      color: activeTheme.accent,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.WRAP
@@ -248,6 +248,6 @@ Page({
     destroyHaptics()
     normalButton = null
     strongButton = null
-    activeTheme = getTheme('dark')
+    activeTheme = getTheme('light')
   }
 })

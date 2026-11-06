@@ -101,6 +101,8 @@ Al llegar, el temporizador se detiene. La función compartida `stopSimulation()`
 
 ## Sistema de diseño
 
+La aplicación inicia en modo claro. El usuario puede cambiar entre claro y oscuro desde Ajustes; la selección se aplica inmediatamente a todas las pantallas durante la sesión activa.
+
 ### Tokens de color
 
 | Token | Valor Zepp OS | Hexadecimal | Rol funcional |

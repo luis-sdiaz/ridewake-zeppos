@@ -1,7 +1,7 @@
-import { Colors, Layout, Type } from '../utils/theme'
+import { getTheme, Layout, Type } from '../utils/theme'
 import { t } from '../utils/i18n'
 import { getRouteSteps } from '../utils/routeSimulator'
-import { clearSession, getSelectedDestination } from '../utils/session'
+import { clearSession, getSelectedDestination, getThemeMode } from '../utils/session'
 import {
   destroyHaptics,
   initHaptics,
@@ -10,38 +10,42 @@ import {
   vibrateWarning
 } from '../utils/haptics'
 
-const STAGE_STYLES = {
-  MONITORING: {
-    statusKey: 'trip_status_monitoring',
-    cardColor: Colors.Navy900,
-    accentColor: Colors.Mint400,
-    textColor: Colors.Mint400,
-    progressColor: Colors.Mint400,
-    haptic: null
-  },
-  EARLY_ALERT: {
-    statusKey: 'trip_status_early',
-    cardColor: Colors.Navy700,
-    accentColor: Colors.Amber400,
-    textColor: Colors.Amber400,
-    progressColor: Colors.Amber400,
-    haptic: 'short'
-  },
-  NEAR: {
-    statusKey: 'trip_status_near',
-    cardColor: Colors.Coral400,
-    accentColor: Colors.Amber400,
-    textColor: Colors.Ink,
-    progressColor: Colors.Coral400,
-    haptic: 'warning'
-  },
-  ARRIVED: {
-    statusKey: 'trip_status_arrived',
-    cardColor: Colors.Coral400,
-    accentColor: Colors.White,
-    textColor: Colors.Ink,
-    progressColor: Colors.Coral400,
-    haptic: 'warning'
+let activeTheme = getTheme('light')
+
+function getStageStyles() {
+  return {
+    MONITORING: {
+      statusKey: 'trip_status_monitoring',
+      cardColor: activeTheme.cardBg,
+      accentColor: activeTheme.success,
+      textColor: activeTheme.success,
+      progressColor: activeTheme.success,
+      haptic: null
+    },
+    EARLY_ALERT: {
+      statusKey: 'trip_status_early',
+      cardColor: activeTheme.btnSecondary,
+      accentColor: activeTheme.warning,
+      textColor: activeTheme.warning,
+      progressColor: activeTheme.warning,
+      haptic: 'short'
+    },
+    NEAR: {
+      statusKey: 'trip_status_near',
+      cardColor: activeTheme.danger,
+      accentColor: activeTheme.warning,
+      textColor: activeTheme.onAccent,
+      progressColor: activeTheme.danger,
+      haptic: 'warning'
+    },
+    ARRIVED: {
+      statusKey: 'trip_status_arrived',
+      cardColor: activeTheme.danger,
+      accentColor: activeTheme.textPrimary,
+      textColor: activeTheme.onAccent,
+      progressColor: activeTheme.danger,
+      haptic: 'warning'
+    }
   }
 }
 
@@ -81,7 +85,8 @@ function keepScreenAwakeForAlert() {
 
 function updateTripUi(shouldVibrate) {
   const routeStep = routeSteps[stageIndex]
-  const stage = STAGE_STYLES[routeStep.state] || STAGE_STYLES.MONITORING
+  const stageStyles = getStageStyles()
+  const stage = stageStyles[routeStep.state] || stageStyles.MONITORING
   const progressWidth = Math.max(
     1,
     Math.round(Layout.contentWidth * routeStep.progress)
@@ -137,7 +142,7 @@ function updateTripUi(shouldVibrate) {
       w: Layout.contentWidth,
       h: 50,
       text: t('trip_btn_finish'),
-      color: Colors.Coral400
+      color: activeTheme.danger
     })
   }
 
@@ -166,6 +171,7 @@ function advanceSimulation() {
 Page({
   build() {
     initHaptics()
+    activeTheme = getTheme(getThemeMode())
     stageIndex = 0
     journeyCompleted = false
 
@@ -178,7 +184,7 @@ Page({
       y: Layout.y(0),
       w: Layout.width,
       h: Layout.height,
-      color: Colors.Navy950
+      color: activeTheme.bg
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
@@ -188,7 +194,7 @@ Page({
       h: 20,
       text: t('trip_title'),
       text_size: Type.body,
-      color: Colors.Cyan500,
+      color: activeTheme.accent,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V
     })
@@ -200,7 +206,7 @@ Page({
       h: 26,
       text: destinationName,
       text_size: Type.button,
-      color: Colors.White,
+      color: activeTheme.textPrimary,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.WRAP
@@ -212,7 +218,7 @@ Page({
       w: Layout.contentWidth,
       h: 100,
       radius: 16,
-      color: Colors.Navy900
+      color: activeTheme.cardBg
     })
 
     alertAccent = hmUI.createWidget(hmUI.widget.FILL_RECT, {
@@ -221,7 +227,7 @@ Page({
       w: 5,
       h: 100,
       radius: 2,
-      color: Colors.Mint400
+      color: activeTheme.success
     })
 
     statusText = hmUI.createWidget(hmUI.widget.TEXT, {
@@ -231,7 +237,7 @@ Page({
       h: 66,
       text: t('trip_status_monitoring'),
       text_size: Type.button,
-      color: Colors.Mint400,
+      color: activeTheme.success,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.WRAP
@@ -243,7 +249,7 @@ Page({
       w: Layout.contentWidth,
       h: 6,
       radius: 3,
-      color: Colors.Navy700
+      color: activeTheme.divider
     })
 
     progressIndicator = hmUI.createWidget(hmUI.widget.FILL_RECT, {
@@ -252,7 +258,7 @@ Page({
       w: Math.round(Layout.contentWidth * routeSteps[0].progress),
       h: 6,
       radius: 3,
-      color: STAGE_STYLES[routeSteps[0].state].progressColor
+      color: getStageStyles()[routeSteps[0].state].progressColor
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
@@ -262,7 +268,7 @@ Page({
       h: 14,
       text: t('trip_next_stop'),
       text_size: 11,
-      color: Colors.Slate350,
+      color: activeTheme.textSecondary,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V
     })
@@ -274,7 +280,7 @@ Page({
       h: 20,
       text: routeSteps[0].stop,
       text_size: 13,
-      color: Colors.White,
+      color: activeTheme.textPrimary,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.WRAP
@@ -287,7 +293,7 @@ Page({
       h: 14,
       text: t('trip_distance_remaining'),
       text_size: 11,
-      color: Colors.Slate350,
+      color: activeTheme.textSecondary,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V
     })
@@ -299,7 +305,7 @@ Page({
       h: 26,
       text: routeSteps[0].distance,
       text_size: Type.brand,
-      color: Colors.White,
+      color: activeTheme.textPrimary,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V
     })
@@ -311,7 +317,7 @@ Page({
       h: 14,
       text: t('trip_eta_remaining'),
       text_size: 11,
-      color: Colors.Slate350,
+      color: activeTheme.textSecondary,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V
     })
@@ -323,7 +329,7 @@ Page({
       h: 24,
       text: routeSteps[0].eta,
       text_size: Type.button,
-      color: Colors.Cyan500,
+      color: activeTheme.accent,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V
     })
@@ -334,11 +340,11 @@ Page({
       w: Layout.contentWidth,
       h: 50,
       radius: 25,
-      normal_color: Colors.Navy700,
-      press_color: Colors.DisabledSurface,
+      normal_color: activeTheme.btnSecondary,
+      press_color: activeTheme.cardBg,
       text: t('trip_btn_finish'),
       text_size: Type.button,
-      color: Colors.White,
+      color: activeTheme.textPrimary,
       click_func() {
         vibrateShort()
         stopSimulation()
@@ -366,5 +372,6 @@ Page({
     etaText = null
     finishButton = null
     routeSteps = []
+    activeTheme = getTheme('light')
   }
 })

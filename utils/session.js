@@ -1,6 +1,6 @@
 let selectedDestination = null
 let hapticMode = 'normal'
-let themeMode = 'dark'
+let themeMode = 'light'
 
 function getGlobalState() {
   const app = getApp()

@@ -35,6 +35,14 @@ async function run() {
     'textPrimary',
     'textSecondary',
     'textMuted',
+    'accent',
+    'success',
+    'warning',
+    'danger',
+    'onAccent',
+    'disabledBg',
+    'disabledText',
+    'divider',
     'Cyan500',
     'Mint400',
     'Amber400',
@@ -90,7 +98,34 @@ async function run() {
     assert.strictEqual(light[key], expected, `light.${key} no coincide con la especificación`)
   }
 
-  check(fallback === dark, 'El modo inválido debe usar dark como fallback predeterminado')
+  check(fallback === dark, 'Un identificador de tema inválido debe usar dark como fallback seguro')
+
+  const sessionSource = fs.readFileSync(
+    path.join(projectRoot, 'utils', 'session.js'),
+    'utf8'
+  )
+  check(/let\s+themeMode\s*=\s*['"]light['"]/.test(sessionSource),
+    'El tema predeterminado de la aplicación debe ser light')
+
+  const themedPages = [
+    'index.js',
+    'destination.js',
+    'confirmation.js',
+    'trip.js',
+    'settings.js'
+  ]
+  for (const fileName of themedPages) {
+    const pageSource = fs.readFileSync(
+      path.join(projectRoot, 'page', fileName),
+      'utf8'
+    )
+    check(pageSource.includes('getThemeMode'),
+      `page/${fileName} debe consultar el tema activo`)
+    check(pageSource.includes('getTheme('),
+      `page/${fileName} debe resolver tokens del tema activo`)
+    check(!/\bColors\./.test(pageSource),
+      `page/${fileName} no debe usar colores absolutos fuera del tema activo`)
+  }
   assertions += 3
   assert.strictEqual(Layout.width, 192, 'Layout.width debe ser 192')
   assert.strictEqual(Layout.height, 490, 'Layout.height debe ser 490')

@@ -1,12 +1,13 @@
-import { Colors, Layout, Type } from '../utils/theme'
+import { getTheme, Layout, Type } from '../utils/theme'
 import { t } from '../utils/i18n'
-import { getSelectedDestination, setSelectedDestination } from '../utils/session'
+import { getSelectedDestination, getThemeMode, setSelectedDestination } from '../utils/session'
 import { destroyHaptics, initHaptics, vibrateShort } from '../utils/haptics'
 
 let currentSelection = null
 let homeButton = null
 let universityButton = null
 let continueButton = null
+let activeTheme = getTheme('light')
 
 function destinationButtonProps(y, destination, text) {
   const isSelected = currentSelection === destination
@@ -17,11 +18,11 @@ function destinationButtonProps(y, destination, text) {
     w: Layout.contentWidth,
     h: 56,
     radius: 16,
-    normal_color: isSelected ? Colors.Cyan500 : Colors.Navy700,
-    press_color: isSelected ? Colors.Mint400 : Colors.DisabledSurface,
+    normal_color: isSelected ? activeTheme.accent : activeTheme.btnSecondary,
+    press_color: isSelected ? activeTheme.success : activeTheme.cardBg,
     text,
     text_size: Type.button,
-    color: isSelected ? Colors.Ink : Colors.White
+    color: isSelected ? activeTheme.onAccent : activeTheme.textPrimary
   }
 }
 
@@ -34,11 +35,11 @@ function continueButtonProps() {
     w: Layout.contentWidth,
     h: 52,
     radius: 26,
-    normal_color: isEnabled ? Colors.Mint400 : Colors.DisabledSurface,
-    press_color: isEnabled ? Colors.Cyan500 : Colors.DisabledSurface,
+    normal_color: isEnabled ? activeTheme.success : activeTheme.disabledBg,
+    press_color: isEnabled ? activeTheme.accent : activeTheme.disabledBg,
     text: t('dest_continue'),
     text_size: Type.button,
-    color: isEnabled ? Colors.Ink : Colors.DisabledContent
+    color: isEnabled ? activeTheme.onAccent : activeTheme.disabledText
   }
 }
 
@@ -64,6 +65,7 @@ function selectDestination(destination) {
 Page({
   build() {
     initHaptics()
+    activeTheme = getTheme(getThemeMode())
     currentSelection = getSelectedDestination()
 
     hmUI.createWidget(hmUI.widget.FILL_RECT, {
@@ -71,7 +73,7 @@ Page({
       y: Layout.y(0),
       w: Layout.width,
       h: Layout.height,
-      color: Colors.Navy950
+      color: activeTheme.bg
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
@@ -81,7 +83,7 @@ Page({
       h: 20,
       text: t('dest_header'),
       text_size: Type.body,
-      color: Colors.Cyan500,
+      color: activeTheme.accent,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V
     })
@@ -93,7 +95,7 @@ Page({
       h: 36,
       text: t('dest_subtitle'),
       text_size: 20,
-      color: Colors.White,
+      color: activeTheme.textPrimary,
       align_h: hmUI.align.CENTER_H,
       align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.WRAP
@@ -129,11 +131,11 @@ Page({
       w: Layout.contentWidth,
       h: 44,
       radius: 22,
-      normal_color: Colors.Navy900,
-      press_color: Colors.Navy700,
+      normal_color: activeTheme.cardBg,
+      press_color: activeTheme.btnSecondary,
       text: t('dest_back'),
       text_size: Type.body,
-      color: Colors.Slate350,
+      color: activeTheme.textSecondary,
       click_func() {
         vibrateShort()
         hmApp.goBack()
@@ -146,5 +148,6 @@ Page({
     homeButton = null
     universityButton = null
     continueButton = null
+    activeTheme = getTheme('light')
   }
 })
