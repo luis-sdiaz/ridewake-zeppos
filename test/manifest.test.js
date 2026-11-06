@@ -24,8 +24,23 @@ function run() {
 
   check(Boolean(manifest.app && (manifest.app.bundleId || manifest.app.appId)),
     'app.json requiere app.bundleId o app.appId')
-  check(Array.isArray(manifest.permissions) && manifest.permissions.includes('device:os.vibrate'),
-    'Falta el permiso device:os.vibrate')
+  assertions += 1
+  assert.strictEqual(manifest.app.appId, 1000000, 'app.appId debe conservarse en 1000000')
+  assertions += 1
+  assert.deepStrictEqual(manifest.permissions, ['device:os.vibrate'],
+    'Solo debe declararse el permiso device:os.vibrate')
+
+  assertions += 1
+  assert.deepStrictEqual(manifest.runtime && manifest.runtime.apiVersion, {
+    compatible: '1.0.0',
+    target: '1.0.1',
+    minVersion: '1.0.0'
+  }, 'La versión del runtime Zepp OS 1.0 cambió')
+
+  check(manifest.defaultLanguage === 'es-ES', 'defaultLanguage debe conservarse en es-ES')
+  assertions += 1
+  assert.deepStrictEqual(Object.keys(manifest.i18n || {}).sort(), ['en-US', 'es-ES'],
+    'Deben conservarse los idiomas es-ES y en-US')
 
   const target = manifest.targets && manifest.targets['band-7']
   check(Boolean(target), 'Falta targets["band-7"]')
@@ -45,6 +60,22 @@ function run() {
   assertions += 1
   assert.deepStrictEqual([...pages].sort(), expectedPages, 'Las rutas registradas no coinciden')
 
+  check(!target.module['app-side'], 'band-7 no debe declarar módulo app-side')
+  check(!target.module['app-service'], 'band-7 no debe declarar módulo app-service')
+
+  const platforms = target.platforms
+  check(Array.isArray(platforms), 'band-7 debe declarar platforms')
+  const expectedPlatforms = [
+    { name: 'amazfit-band-7', deviceSource: 254 },
+    { name: 'xiaomi-smart-band-7-l66', deviceSource: 260 },
+    { name: 'xiaomi-smart-band-7-international', deviceSource: 263 }
+  ]
+  assertions += 1
+  assert.deepStrictEqual(platforms, expectedPlatforms,
+    'Las variantes Band 7 deben conservar exactamente deviceSource 254, 260 y 263')
+  check(new Set(platforms.map(({ deviceSource }) => deviceSource)).size === platforms.length,
+    'No puede haber deviceSource duplicados en band-7.platforms')
+
   for (const page of pages) {
     const pagePath = path.join(projectRoot, `${page}.js`)
     check(fs.existsSync(pagePath), `La ruta registrada no existe: ${page}.js`)
@@ -53,7 +84,7 @@ function run() {
   return {
     name: 'Manifiesto Zepp OS',
     assertions,
-    detail: `${pages.length} páginas, target band-7 y permiso de vibración validados`
+    detail: `${pages.length} páginas, variantes 254/260/263, runtime e invariantes validados`
   }
 }
 

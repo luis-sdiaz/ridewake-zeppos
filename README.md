@@ -21,7 +21,7 @@ Esta versión es un prototipo funcional para Xiaomi Smart Band 7 y mantiene comp
 | Hardware objetivo | Xiaomi Smart Band 7; emulación compatible con Amazfit Band 7 |
 | Pantalla | 192 × 490 px (Xiaomi) / 194 × 368 px (Amazfit) |
 | Interacción | Pantalla táctil capacitiva y motor háptico integrado |
-| Identificador Zepp | `deviceSource: 263` (Xiaomi) / `254` (Amazfit) |
+| Identificador Zepp | `deviceSource: 260` (`l66`) y `263` (`l66w_2`) para Xiaomi / `254` para Amazfit |
 | Target del proyecto | `band-7` |
 | Runtime | Zepp OS 1.0, JavaScript ES6 sobre QuickJS |
 | API declarada | Compatible `1.0.0`, target `1.0.1`, mínima `1.0.0` |
@@ -165,7 +165,7 @@ La comunicación de alertas no depende únicamente del color: cada hito muestra 
 
 - Node.js 16 o superior.
 - npm.
-- Zeus CLI 1.8.2, fijado por compatibilidad con Xiaomi Smart Band 7 y `deviceSource: 263`.
+- Zeus CLI 1.9.3, fijado como dependencia local del proyecto.
 - Zepp App con modo desarrollador para la instalación mediante QR.
 
 ### Instalación de dependencias
@@ -222,7 +222,7 @@ ROLLUP: 6 archivos
 QJSC: 6 archivos
 ```
 
-Zeus 1.9.3 reconoce ambos `deviceSource`, redimensiona el icono a 96 px para Amazfit Band 7, compila los seis bundles QuickJS y genera el `.zab`.
+Zeus 1.9.3 compila el target `band-7` con las plataformas declaradas `254`, `260` y `263`, redimensiona el icono, compila los seis bundles QuickJS y genera el `.zab`. `zeus preview` también completa la generación del QR. El catálogo local actualizado de Zeus 1.9.3 no muestra actualmente las variantes Xiaomi `260/263` y el encabezado del QR puede aparecer como `undefined`; por ello, la instalación en una Xiaomi Smart Band 7 física con `deviceSource: 260` está pendiente de validación en hardware.
 
 ## Alcance y trabajo pendiente
 
@@ -230,6 +230,7 @@ Zeus 1.9.3 reconoce ambos `deviceSource`, redimensiona el icono a 96 px para Ama
 - Definir un `appId` de producción; el manifiesto utiliza actualmente `1000000` como identificador provisional.
 - Validar en hardware la intensidad de ambos perfiles hápticos y la legibilidad en movimiento.
 - Validar instalación por QR con la versión de Zepp App utilizada para vincular la Xiaomi Smart Band 7.
+- Confirmar en la Xiaomi Smart Band 7 física del propietario que `deviceSource: 260` acepta el paquete y que la geometría, navegación y vibración funcionan como se espera.
 - Añadir pruebas automatizadas cuando exista un entorno de ejecución Zepp OS adecuado para CI.
 
 ## Gobernanza y créditos
