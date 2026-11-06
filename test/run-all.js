@@ -3,9 +3,13 @@ const path = require("path");
 const suites = [
   "./i18n.test.js",
   "./theme.test.js",
+  "./session.test.js",
+  "./settings-behavior.test.js",
   "./manifest.test.js",
   "./screen-bounds.test.js",
   "./routeSimulator.test.js",
+  "./trip-behavior.test.js",
+  "./haptics.test.js",
 ];
 
 let totalAssertions = 0;

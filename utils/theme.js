@@ -97,14 +97,28 @@ try {
   deviceHeight = BASE_HEIGHT
 }
 
+export function scaleVertical(value, height = deviceHeight) {
+  if (value === 0) return 0
+  if (height >= BASE_HEIGHT) return value
+  return Math.max(1, Math.round(value * height / BASE_HEIGHT))
+}
+
 export const Layout = {
   width: 192,
   height: deviceHeight,
   baseHeight: BASE_HEIGHT,
-  contentWidth: 160,
-  leftMargin: 16,
+  topSafe: 28,
+  bottomSafe: 28,
+  contentWidth: 152,
+  leftMargin: 20,
+  innerWidth: 136,
+  innerMargin: 28,
+  cardRadius: 20,
+  controlRadius: 26,
   y(value) {
-    if (deviceHeight >= BASE_HEIGHT) return value
-    return Math.round(value * deviceHeight / BASE_HEIGHT)
+    return scaleVertical(value)
+  },
+  h(value) {
+    return scaleVertical(value)
   }
 }

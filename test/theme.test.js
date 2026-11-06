@@ -20,7 +20,7 @@ async function run() {
 
   check(fs.existsSync(themePath), `No existe ${themePath}`)
   const themeModule = await loadThemeModule()
-  const { Colors, Layout, Palette, getTheme } = themeModule
+  const { Colors, Layout, Palette, getTheme, scaleVertical } = themeModule
 
   check(typeof getTheme === 'function', 'getTheme no está exportada')
   check(Colors === Palette, 'Colors debe conservarse como alias retrocompatible de Palette')
@@ -126,15 +126,22 @@ async function run() {
     check(!/\bColors\./.test(pageSource),
       `page/${fileName} no debe usar colores absolutos fuera del tema activo`)
   }
-  assertions += 3
+  assertions += 9
   assert.strictEqual(Layout.width, 192, 'Layout.width debe ser 192')
   assert.strictEqual(Layout.height, 490, 'Layout.height debe ser 490')
-  assert.strictEqual(Layout.contentWidth, 160, 'Layout.contentWidth debe ser 160')
+  assert.strictEqual(Layout.contentWidth, 152, 'Layout.contentWidth debe ser 152')
+  assert.strictEqual(Layout.leftMargin, 20, 'Layout.leftMargin debe ser 20')
+  assert.strictEqual(Layout.innerWidth, 136, 'Layout.innerWidth debe ser 136')
+  assert.strictEqual(Layout.innerMargin, 28, 'Layout.innerMargin debe ser 28')
+  assert.strictEqual(Layout.topSafe, 28, 'Layout.topSafe debe ser 28')
+  assert.strictEqual(Layout.bottomSafe, 28, 'Layout.bottomSafe debe ser 28')
+  assert.strictEqual(scaleVertical(490, 368), 368,
+    'La escala vertical compacta debe mapear 490 a 368')
 
   return {
     name: 'Tokens de diseño',
     assertions,
-    detail: 'Temas dark/light, acentos semánticos y layout 192×490/160 validados'
+    detail: 'Temas dark/light y geometría de cápsula 192×490/368 validados'
   }
 }
 

@@ -2,8 +2,7 @@ const strings = {
   es: {
     brand_title: 'RIDEWAKE AI',
     home_headline: 'Tu viaje, bajo control',
-    home_description: 'Alertas predictivas al llegar a tu parada',
-    home_status: 'LISTO PARA ACOMPAÑARTE',
+    home_status: 'LISTO',
     btn_start_trip: 'Iniciar viaje',
     btn_settings: 'Ajustes',
     settings_title: 'AJUSTES',
@@ -53,8 +52,7 @@ const strings = {
   en: {
     brand_title: 'RIDEWAKE AI',
     home_headline: 'Your ride, under control',
-    home_description: 'Predictive alerts before your stop',
-    home_status: 'READY TO RIDE WITH YOU',
+    home_status: 'READY',
     btn_start_trip: 'Start trip',
     btn_settings: 'Settings',
     settings_title: 'SETTINGS',

@@ -16,8 +16,8 @@ function destinationButtonProps(y, destination, text) {
     x: Layout.leftMargin,
     y: Layout.y(y),
     w: Layout.contentWidth,
-    h: 56,
-    radius: 16,
+    h: Layout.h(54),
+    radius: Layout.h(27),
     normal_color: isSelected ? activeTheme.accent : activeTheme.btnSecondary,
     press_color: isSelected ? activeTheme.success : activeTheme.cardBg,
     text,
@@ -31,10 +31,10 @@ function continueButtonProps() {
 
   return {
     x: Layout.leftMargin,
-    y: Layout.y(310),
+    y: Layout.y(300),
     w: Layout.contentWidth,
-    h: 52,
-    radius: 26,
+    h: Layout.h(52),
+    radius: Layout.h(26),
     normal_color: isEnabled ? activeTheme.success : activeTheme.disabledBg,
     press_color: isEnabled ? activeTheme.accent : activeTheme.disabledBg,
     text: t('dest_continue'),
@@ -46,11 +46,11 @@ function continueButtonProps() {
 function refreshSelection() {
   homeButton.setProperty(
     hmUI.prop.MORE,
-    destinationButtonProps(130, 'home', t('dest_home'))
+    destinationButtonProps(126, 'home', t('dest_home'))
   )
   universityButton.setProperty(
     hmUI.prop.MORE,
-    destinationButtonProps(200, 'university', t('dest_university'))
+    destinationButtonProps(194, 'university', t('dest_university'))
   )
   continueButton.setProperty(hmUI.prop.MORE, continueButtonProps())
 }
@@ -78,9 +78,9 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: Layout.y(40),
+      y: Layout.y(38),
       w: Layout.contentWidth,
-      h: 20,
+      h: Layout.h(20),
       text: t('dest_header'),
       text_size: Type.body,
       color: activeTheme.accent,
@@ -90,9 +90,9 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: Layout.y(65),
+      y: Layout.y(66),
       w: Layout.contentWidth,
-      h: 36,
+      h: Layout.h(38),
       text: t('dest_subtitle'),
       text_size: 20,
       color: activeTheme.textPrimary,
@@ -102,14 +102,14 @@ Page({
     })
 
     homeButton = hmUI.createWidget(hmUI.widget.BUTTON, {
-      ...destinationButtonProps(130, 'home', t('dest_home')),
+      ...destinationButtonProps(126, 'home', t('dest_home')),
       click_func() {
         selectDestination('home')
       }
     })
 
     universityButton = hmUI.createWidget(hmUI.widget.BUTTON, {
-      ...destinationButtonProps(200, 'university', t('dest_university')),
+      ...destinationButtonProps(194, 'university', t('dest_university')),
       click_func() {
         selectDestination('university')
       }
@@ -127,10 +127,10 @@ Page({
 
     hmUI.createWidget(hmUI.widget.BUTTON, {
       x: Layout.leftMargin,
-      y: Layout.y(380),
+      y: Layout.y(372),
       w: Layout.contentWidth,
-      h: 44,
-      radius: 22,
+      h: Layout.h(44),
+      radius: Layout.h(22),
       normal_color: activeTheme.cardBg,
       press_color: activeTheme.btnSecondary,
       text: t('dest_back'),

@@ -32,9 +32,9 @@ function getStageStyles() {
     },
     NEAR: {
       statusKey: 'trip_status_near',
-      cardColor: activeTheme.danger,
-      accentColor: activeTheme.warning,
-      textColor: activeTheme.onAccent,
+      cardColor: activeTheme.btnSecondary,
+      accentColor: activeTheme.danger,
+      textColor: activeTheme.danger,
       progressColor: activeTheme.danger,
       haptic: 'warning'
     },
@@ -94,25 +94,25 @@ function updateTripUi(shouldVibrate) {
 
   alertCard.setProperty(hmUI.prop.MORE, {
     x: Layout.leftMargin,
-    y: Layout.y(95),
+    y: Layout.y(92),
     w: Layout.contentWidth,
-    h: 100,
-    radius: 16,
+    h: Layout.h(104),
+    radius: Layout.cardRadius,
     color: stage.cardColor
   })
   alertAccent.setProperty(hmUI.prop.MORE, {
     x: Layout.leftMargin,
-    y: Layout.y(95),
-    w: 5,
-    h: 100,
-    radius: 2,
+    y: Layout.y(92),
+    w: 6,
+    h: Layout.h(104),
+    radius: 3,
     color: stage.accentColor
   })
   statusText.setProperty(hmUI.prop.MORE, {
-    x: 28,
-    y: Layout.y(112),
-    w: 136,
-    h: 66,
+    x: Layout.innerMargin,
+    y: Layout.y(108),
+    w: Layout.innerWidth,
+    h: Layout.h(68),
     text: t(stage.statusKey),
     text_size: Type.button,
     color: stage.textColor,
@@ -122,10 +122,10 @@ function updateTripUi(shouldVibrate) {
   })
   progressIndicator.setProperty(hmUI.prop.MORE, {
     x: Layout.leftMargin,
-    y: Layout.y(205),
+    y: Layout.y(207),
     w: progressWidth,
-    h: 6,
-    radius: 3,
+    h: Layout.h(6),
+    radius: Layout.h(3),
     color: stage.progressColor
   })
   nextStopText.setProperty(hmUI.prop.TEXT, routeStep.stop)
@@ -138,11 +138,13 @@ function updateTripUi(shouldVibrate) {
   if (stageIndex === routeSteps.length - 1) {
     finishButton.setProperty(hmUI.prop.MORE, {
       x: Layout.leftMargin,
-      y: Layout.y(360),
+      y: Layout.y(370),
       w: Layout.contentWidth,
-      h: 50,
+      h: Layout.h(50),
       text: t('trip_btn_finish'),
-      color: activeTheme.danger
+      normal_color: activeTheme.danger,
+      press_color: activeTheme.accent,
+      color: activeTheme.onAccent
     })
   }
 
@@ -189,9 +191,9 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: Layout.y(35),
+      y: Layout.y(32),
       w: Layout.contentWidth,
-      h: 20,
+      h: Layout.h(20),
       text: t('trip_title'),
       text_size: Type.body,
       color: activeTheme.accent,
@@ -201,9 +203,9 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: Layout.y(60),
+      y: Layout.y(58),
       w: Layout.contentWidth,
-      h: 26,
+      h: Layout.h(26),
       text: destinationName,
       text_size: Type.button,
       color: activeTheme.textPrimary,
@@ -214,27 +216,27 @@ Page({
 
     alertCard = hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: Layout.leftMargin,
-      y: Layout.y(95),
+      y: Layout.y(92),
       w: Layout.contentWidth,
-      h: 100,
-      radius: 16,
+      h: Layout.h(104),
+      radius: Layout.cardRadius,
       color: activeTheme.cardBg
     })
 
     alertAccent = hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: Layout.leftMargin,
-      y: Layout.y(95),
-      w: 5,
-      h: 100,
-      radius: 2,
+      y: Layout.y(92),
+      w: 6,
+      h: Layout.h(104),
+      radius: 3,
       color: activeTheme.success
     })
 
     statusText = hmUI.createWidget(hmUI.widget.TEXT, {
-      x: 28,
-      y: Layout.y(112),
-      w: 136,
-      h: 66,
+      x: Layout.innerMargin,
+      y: Layout.y(108),
+      w: Layout.innerWidth,
+      h: Layout.h(68),
       text: t('trip_status_monitoring'),
       text_size: Type.button,
       color: activeTheme.success,
@@ -245,27 +247,36 @@ Page({
 
     hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: Layout.leftMargin,
-      y: Layout.y(205),
+      y: Layout.y(207),
       w: Layout.contentWidth,
-      h: 6,
-      radius: 3,
+      h: Layout.h(6),
+      radius: Layout.h(3),
       color: activeTheme.divider
     })
 
     progressIndicator = hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: Layout.leftMargin,
-      y: Layout.y(205),
+      y: Layout.y(207),
       w: Math.round(Layout.contentWidth * routeSteps[0].progress),
-      h: 6,
-      radius: 3,
+      h: Layout.h(6),
+      radius: Layout.h(3),
       color: getStageStyles()[routeSteps[0].state].progressColor
     })
 
-    hmUI.createWidget(hmUI.widget.TEXT, {
+    hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: Layout.leftMargin,
-      y: Layout.y(218),
+      y: Layout.y(224),
       w: Layout.contentWidth,
-      h: 14,
+      h: Layout.h(126),
+      radius: Layout.cardRadius,
+      color: activeTheme.cardBg
+    })
+
+    hmUI.createWidget(hmUI.widget.TEXT, {
+      x: Layout.innerMargin,
+      y: Layout.y(232),
+      w: Layout.innerWidth,
+      h: Layout.h(14),
       text: t('trip_next_stop'),
       text_size: 11,
       color: activeTheme.textSecondary,
@@ -274,10 +285,10 @@ Page({
     })
 
     nextStopText = hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.leftMargin,
-      y: Layout.y(234),
-      w: Layout.contentWidth,
-      h: 20,
+      x: Layout.innerMargin,
+      y: Layout.y(248),
+      w: Layout.innerWidth,
+      h: Layout.h(20),
       text: routeSteps[0].stop,
       text_size: 13,
       color: activeTheme.textPrimary,
@@ -287,10 +298,10 @@ Page({
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.leftMargin,
-      y: Layout.y(258),
-      w: Layout.contentWidth,
-      h: 14,
+      x: Layout.innerMargin,
+      y: Layout.y(274),
+      w: Layout.innerWidth,
+      h: Layout.h(14),
       text: t('trip_distance_remaining'),
       text_size: 11,
       color: activeTheme.textSecondary,
@@ -299,10 +310,10 @@ Page({
     })
 
     distanceText = hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.leftMargin,
-      y: Layout.y(273),
-      w: Layout.contentWidth,
-      h: 26,
+      x: Layout.innerMargin,
+      y: Layout.y(289),
+      w: Layout.innerWidth,
+      h: Layout.h(24),
       text: routeSteps[0].distance,
       text_size: Type.brand,
       color: activeTheme.textPrimary,
@@ -311,10 +322,10 @@ Page({
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.leftMargin,
-      y: Layout.y(301),
-      w: Layout.contentWidth,
-      h: 14,
+      x: Layout.innerMargin,
+      y: Layout.y(315),
+      w: Layout.innerWidth,
+      h: Layout.h(14),
       text: t('trip_eta_remaining'),
       text_size: 11,
       color: activeTheme.textSecondary,
@@ -323,10 +334,10 @@ Page({
     })
 
     etaText = hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.leftMargin,
-      y: Layout.y(316),
-      w: Layout.contentWidth,
-      h: 24,
+      x: Layout.innerMargin,
+      y: Layout.y(329),
+      w: Layout.innerWidth,
+      h: Layout.h(18),
       text: routeSteps[0].eta,
       text_size: Type.button,
       color: activeTheme.accent,
@@ -336,10 +347,10 @@ Page({
 
     finishButton = hmUI.createWidget(hmUI.widget.BUTTON, {
       x: Layout.leftMargin,
-      y: Layout.y(360),
+      y: Layout.y(370),
       w: Layout.contentWidth,
-      h: 50,
-      radius: 25,
+      h: Layout.h(50),
+      radius: Layout.h(25),
       normal_color: activeTheme.btnSecondary,
       press_color: activeTheme.cardBg,
       text: t('trip_btn_finish'),

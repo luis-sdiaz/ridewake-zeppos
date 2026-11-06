@@ -51,7 +51,7 @@ ridewake-zeppos/
 │   └── settings.js             # Idioma, intensidad háptica e información
 └── utils/
     ├── theme.js                # Colores, tipografía y geometría segura
-    ├── session.js              # Destino y modo háptico compartidos
+    ├── session.js              # Destino, tema y modo háptico compartidos
     ├── i18n.js                 # Diccionario ES/EN y fallback a español
     └── haptics.js              # Sensor VIBRATE y duración de pulsos
 ```
@@ -82,7 +82,8 @@ El estado global es deliberadamente temporal: permanece mientras la Mini App est
 | Viaje activo | Transición a aviso temprano | Actualización de estado y métricas | Pulso corto |
 | Viaje activo | Transición a cerca/llegada | Alerta visual crítica | Pulso de advertencia |
 | Viaje activo | Pulsar **Finalizar viaje** | Limpieza del destino y regreso a Inicio | Pulso corto |
-| Ajustes | Alternar idioma | Recarga inmediata de la pantalla | Pulso corto |
+| Ajustes | Alternar idioma | Actualización inmediata de todos los textos | Pulso corto |
+| Ajustes | Elegir tema claro u oscuro | Recoloración inmediata de la pantalla | Pulso corto |
 | Ajustes | Elegir intensidad | Actualización del toggle y prueba háptica | Pulso con la nueva duración |
 | Ajustes | Pulsar **Volver** | Inicio | Pulso corto |
 
@@ -111,13 +112,13 @@ La aplicación inicia en modo claro. El usuario puede cambiar entre claro y oscu
 | `Mint400` | `0x72E4C1` | `#72E4C1` | Monitoreo, éxito, selección y confirmación |
 | `Amber400` | `0xFFC857` | `#FFC857` | Aviso temprano y precaución |
 | `Coral400` | `0xFF6B6B` | `#FF6B6B` | Parada cercana y llegada crítica |
-| `Navy950` | `0x020405` | `#020405` | Fondo AMOLED principal |
-| `Navy900` | `0x071015` | `#071015` | Tarjetas y superficies elevadas |
-| `Navy700` | `0x123442` | `#123442` | Controles secundarios y selección inactiva |
+| `Navy950` | `0x0A1118` | `#0A1118` | Fondo AMOLED principal |
+| `Navy900` | `0x111C26` | `#111C26` | Tarjetas y superficies elevadas |
+| `Navy700` | `0x1B2A38` | `#1B2A38` | Controles secundarios y selección inactiva |
 | `White` | `0xFFFFFF` | `#FFFFFF` | Texto de alta prioridad |
 | `Slate300` | `0xB6C4CA` | `#B6C4CA` | Texto secundario claro |
-| `Slate350` | `0x9DB3BD` | `#9DB3BD` | Etiquetas y descripciones |
-| `Slate500` | `0x82959E` | `#82959E` | Texto auxiliar |
+| `Slate350` | `0x8FA3B8` | `#8FA3B8` | Etiquetas y descripciones |
+| `Slate500` | `0x506578` | `#506578` | Texto auxiliar |
 | `Ink` | `0x001018` | `#001018` | Texto oscuro sobre superficies claras |
 | `DisabledSurface` | `0x16262D` | `#16262D` | Fondo de controles deshabilitados |
 | `DisabledContent` | `0x60737C` | `#60737C` | Contenido deshabilitado |
@@ -133,16 +134,18 @@ La aplicación inicia en modo claro. El usuario puede cambiar entre claro y oscu
 | `Type.caption` | 12 px |
 | `Layout.width` | 192 px |
 | `Layout.height` | 490 px |
-| `Layout.leftMargin` | 16 px |
-| `Layout.contentWidth` | 160 px |
+| `Layout.leftMargin` | 20 px |
+| `Layout.contentWidth` | 152 px |
+| `Layout.innerMargin` | 28 px |
+| `Layout.innerWidth` | 136 px |
 
-La interfaz reserva 16 px a cada lado. Los controles principales utilizan un ancho máximo de 160 px para reducir recortes cerca de los bordes curvos de la pantalla. Las coordenadas verticales se compactan automáticamente con `hmSetting.getDeviceInfo()` cuando la pantalla es más baja que los 490 px del diseño base.
+La interfaz reserva 20 px a cada lado y 28 px en los bloques internos para respetar la silueta tipo cápsula. Los controles principales usan un ancho máximo de 152 px, tarjetas de 20 px de radio y botones tipo píldora. Posiciones y alturas se compactan automáticamente con `hmSetting.getDeviceInfo()` cuando la pantalla es más baja que los 490 px del diseño base, incluida la variante compatible de 368 px.
 
 ## Internacionalización y accesibilidad
 
 La función `t(key)` consulta un diccionario bilingüe español/inglés. El idioma predeterminado es español y, si una clave no existe en el idioma activo, el sistema intenta resolverla en español antes de mostrar el identificador de la clave.
 
-La pantalla de ajustes permite alternar el idioma y recargar sus textos inmediatamente. El valor se comparte con el resto de páginas durante la sesión de la Mini App.
+La pantalla de ajustes permite alternar el idioma y actualizar sus textos inmediatamente mediante `setProperty()`, sin depender de una recarga de página. El valor se comparte con el resto de páginas durante la sesión de la Mini App.
 
 La comunicación de alertas no depende únicamente del color: cada hito muestra texto, distancia y ETA, y los estados importantes incorporan respuesta háptica. Existen dos perfiles:
 
@@ -163,7 +166,7 @@ La comunicación de alertas no depende únicamente del color: cada hito muestra 
 
 ### Requisitos previos
 
-- Node.js 16 o superior.
+- Node.js 24.14.0, versión utilizada en la verificación final.
 - npm.
 - Zeus CLI 1.9.3, fijado como dependencia local del proyecto.
 - Zepp App con modo desarrollador para la instalación mediante QR.
@@ -210,19 +213,32 @@ O bien:
 zeus preview
 ```
 
-`zeus preview` genera el flujo de previsualización y el código QR para instalar la Mini App desde el modo desarrollador de Zepp App. Esta operación puede requerir autenticación y una pulsera vinculada.
+`zeus preview` genera el código QR de previsualización. Para instalarlo en hardware:
+
+1. Vincular la Xiaomi Smart Band 7 con la aplicación oficial Zepp y mantener Bluetooth activo.
+2. Iniciar sesión en Zepp App y, si Zeus solicita autenticación, utilizar la misma cuenta en las herramientas de desarrollo.
+3. En Zepp App abrir **Perfil → Ajustes → Acerca de** y pulsar siete veces el logotipo de Zepp hasta activar el modo desarrollador.
+4. Volver a **Perfil**, abrir la pulsera vinculada, desplazarse al final y entrar en **Modo desarrollador**.
+5. En Windows, desde la raíz del proyecto, ejecutar `npm run preview`.
+6. Esperar a que la terminal muestre `Please use Zepp APP...`, el QR y su fecha de vencimiento.
+7. En el modo desarrollador de Zepp App, abrir **Scan/Escanear**, leer el QR y confirmar la instalación.
+8. Abrir RideWake AI desde la lista de aplicaciones de la pulsera y comprobar Inicio, Ajustes, un recorrido completo y las vibraciones.
+
+La generación del QR no confirma que el paquete haya sido instalado ni ejecutado en la Xiaomi Smart Band 7 física. Si Zeus muestra `[undefined] RideWake AI-1.0.0`, debe registrarse como advertencia de identificación del catálogo local para `deviceSource: 260`; no demuestra por sí sola compatibilidad ni incompatibilidad.
 
 ## Verificación de compilación
 
-La última verificación local finalizó correctamente:
+La verificación final local finalizó correctamente:
 
 ```text
+TEST: 9/9 suites, 795 aserciones
 BUILD_EXIT=0
 ROLLUP: 6 archivos
 QJSC: 6 archivos
+PREVIEW_EXIT=0, QR generado
 ```
 
-Zeus 1.9.3 compila el target `band-7` con las plataformas declaradas `254`, `260` y `263`, redimensiona el icono, compila los seis bundles QuickJS y genera el `.zab`. `zeus preview` también completa la generación del QR. El catálogo local actualizado de Zeus 1.9.3 no muestra actualmente las variantes Xiaomi `260/263` y el encabezado del QR puede aparecer como `undefined`; por ello, la instalación en una Xiaomi Smart Band 7 física con `deviceSource: 260` está pendiente de validación en hardware.
+Zeus 1.9.3 compila el target `band-7` con las plataformas declaradas `254`, `260` y `263`, redimensiona el icono, compila los seis bundles QuickJS y genera `dist/1000000-RideWake_AI-1.0.0-20261106025026.zab`. `zeus preview` también completa la generación del QR. El encabezado del QR muestra actualmente `[undefined] RideWake AI-1.0.0`; por ello, la instalación en una Xiaomi Smart Band 7 física con `deviceSource: 260` sigue pendiente de validación en hardware.
 
 ## Alcance y trabajo pendiente
 
@@ -231,7 +247,7 @@ Zeus 1.9.3 compila el target `band-7` con las plataformas declaradas `254`, `260
 - Validar en hardware la intensidad de ambos perfiles hápticos y la legibilidad en movimiento.
 - Validar instalación por QR con la versión de Zepp App utilizada para vincular la Xiaomi Smart Band 7.
 - Confirmar en la Xiaomi Smart Band 7 física del propietario que `deviceSource: 260` acepta el paquete y que la geometría, navegación y vibración funcionan como se espera.
-- Añadir pruebas automatizadas cuando exista un entorno de ejecución Zepp OS adecuado para CI.
+- Ejecutar las nueve suites automatizadas dentro de CI cuando se incorpore un entorno de integración.
 
 ## Gobernanza y créditos
 
