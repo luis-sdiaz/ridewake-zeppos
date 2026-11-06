@@ -12,7 +12,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: 0,
-      y: 0,
+      y: Layout.y(0),
       w: Layout.width,
       h: Layout.height,
       color: Colors.Navy950
@@ -20,7 +20,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 35,
+      y: Layout.y(35),
       w: Layout.contentWidth,
       h: 20,
       text: t('conf_title'),
@@ -32,7 +32,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 60,
+      y: Layout.y(60),
       w: Layout.contentWidth,
       h: 28,
       text: t('conf_subtitle'),
@@ -44,7 +44,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: Layout.leftMargin,
-      y: 105,
+      y: Layout.y(105),
       w: Layout.contentWidth,
       h: 180,
       radius: 16,
@@ -53,7 +53,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: 24,
-      y: 115,
+      y: Layout.y(115),
       w: 144,
       h: 18,
       text: t('conf_destination_label'),
@@ -65,7 +65,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: 24,
-      y: 135,
+      y: Layout.y(135),
       w: 144,
       h: 32,
       text: destinationName,
@@ -78,7 +78,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: 32,
-      y: 174,
+      y: Layout.y(174),
       w: 128,
       h: 1,
       color: Colors.Navy700
@@ -86,7 +86,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: 24,
-      y: 182,
+      y: Layout.y(182),
       w: 144,
       h: 32,
       text: `${t('conf_dist_label')} / ${t('conf_eta_label')}`,
@@ -99,7 +99,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: 24,
-      y: 218,
+      y: Layout.y(218),
       w: 144,
       h: 28,
       text: '3.2 km  •  12 min',
@@ -111,7 +111,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.BUTTON, {
       x: Layout.leftMargin,
-      y: 315,
+      y: Layout.y(315),
       w: Layout.contentWidth,
       h: 52,
       radius: 26,
@@ -128,7 +128,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.BUTTON, {
       x: Layout.leftMargin,
-      y: 380,
+      y: Layout.y(380),
       w: Layout.contentWidth,
       h: 44,
       radius: 22,

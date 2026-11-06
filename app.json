@@ -37,6 +37,10 @@
       },
       "platforms": [
         {
+          "name": "amazfit-band-7",
+          "deviceSource": 254
+        },
+        {
           "name": "xiaomi-smart-band-7-international",
           "deviceSource": 263
         }

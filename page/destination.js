@@ -13,7 +13,7 @@ function destinationButtonProps(y, destination, text) {
 
   return {
     x: Layout.leftMargin,
-    y,
+    y: Layout.y(y),
     w: Layout.contentWidth,
     h: 56,
     radius: 16,
@@ -30,7 +30,7 @@ function continueButtonProps() {
 
   return {
     x: Layout.leftMargin,
-    y: 310,
+    y: Layout.y(310),
     w: Layout.contentWidth,
     h: 52,
     radius: 26,
@@ -68,7 +68,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: 0,
-      y: 0,
+      y: Layout.y(0),
       w: Layout.width,
       h: Layout.height,
       color: Colors.Navy950
@@ -76,7 +76,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 40,
+      y: Layout.y(40),
       w: Layout.contentWidth,
       h: 20,
       text: t('dest_header'),
@@ -88,7 +88,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 65,
+      y: Layout.y(65),
       w: Layout.contentWidth,
       h: 36,
       text: t('dest_subtitle'),
@@ -125,7 +125,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.BUTTON, {
       x: Layout.leftMargin,
-      y: 380,
+      y: Layout.y(380),
       w: Layout.contentWidth,
       h: 44,
       radius: 22,

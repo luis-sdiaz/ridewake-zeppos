@@ -89,7 +89,7 @@ function updateTripUi(shouldVibrate) {
 
   alertCard.setProperty(hmUI.prop.MORE, {
     x: Layout.leftMargin,
-    y: 95,
+    y: Layout.y(95),
     w: Layout.contentWidth,
     h: 100,
     radius: 16,
@@ -97,7 +97,7 @@ function updateTripUi(shouldVibrate) {
   })
   alertAccent.setProperty(hmUI.prop.MORE, {
     x: Layout.leftMargin,
-    y: 95,
+    y: Layout.y(95),
     w: 5,
     h: 100,
     radius: 2,
@@ -105,7 +105,7 @@ function updateTripUi(shouldVibrate) {
   })
   statusText.setProperty(hmUI.prop.MORE, {
     x: 28,
-    y: 112,
+    y: Layout.y(112),
     w: 136,
     h: 66,
     text: t(stage.statusKey),
@@ -117,7 +117,7 @@ function updateTripUi(shouldVibrate) {
   })
   progressIndicator.setProperty(hmUI.prop.MORE, {
     x: Layout.leftMargin,
-    y: 205,
+    y: Layout.y(205),
     w: progressWidth,
     h: 6,
     radius: 3,
@@ -133,7 +133,7 @@ function updateTripUi(shouldVibrate) {
   if (stageIndex === routeSteps.length - 1) {
     finishButton.setProperty(hmUI.prop.MORE, {
       x: Layout.leftMargin,
-      y: 360,
+      y: Layout.y(360),
       w: Layout.contentWidth,
       h: 50,
       text: t('trip_btn_finish'),
@@ -175,7 +175,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: 0,
-      y: 0,
+      y: Layout.y(0),
       w: Layout.width,
       h: Layout.height,
       color: Colors.Navy950
@@ -183,7 +183,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 35,
+      y: Layout.y(35),
       w: Layout.contentWidth,
       h: 20,
       text: t('trip_title'),
@@ -195,7 +195,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 60,
+      y: Layout.y(60),
       w: Layout.contentWidth,
       h: 26,
       text: destinationName,
@@ -208,7 +208,7 @@ Page({
 
     alertCard = hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: Layout.leftMargin,
-      y: 95,
+      y: Layout.y(95),
       w: Layout.contentWidth,
       h: 100,
       radius: 16,
@@ -217,7 +217,7 @@ Page({
 
     alertAccent = hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: Layout.leftMargin,
-      y: 95,
+      y: Layout.y(95),
       w: 5,
       h: 100,
       radius: 2,
@@ -226,7 +226,7 @@ Page({
 
     statusText = hmUI.createWidget(hmUI.widget.TEXT, {
       x: 28,
-      y: 112,
+      y: Layout.y(112),
       w: 136,
       h: 66,
       text: t('trip_status_monitoring'),
@@ -239,7 +239,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: Layout.leftMargin,
-      y: 205,
+      y: Layout.y(205),
       w: Layout.contentWidth,
       h: 6,
       radius: 3,
@@ -248,7 +248,7 @@ Page({
 
     progressIndicator = hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: Layout.leftMargin,
-      y: 205,
+      y: Layout.y(205),
       w: Math.round(Layout.contentWidth * routeSteps[0].progress),
       h: 6,
       radius: 3,
@@ -257,7 +257,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 218,
+      y: Layout.y(218),
       w: Layout.contentWidth,
       h: 14,
       text: t('trip_next_stop'),
@@ -269,7 +269,7 @@ Page({
 
     nextStopText = hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 234,
+      y: Layout.y(234),
       w: Layout.contentWidth,
       h: 20,
       text: routeSteps[0].stop,
@@ -282,7 +282,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 258,
+      y: Layout.y(258),
       w: Layout.contentWidth,
       h: 14,
       text: t('trip_distance_remaining'),
@@ -294,7 +294,7 @@ Page({
 
     distanceText = hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 273,
+      y: Layout.y(273),
       w: Layout.contentWidth,
       h: 26,
       text: routeSteps[0].distance,
@@ -306,7 +306,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 301,
+      y: Layout.y(301),
       w: Layout.contentWidth,
       h: 14,
       text: t('trip_eta_remaining'),
@@ -318,7 +318,7 @@ Page({
 
     etaText = hmUI.createWidget(hmUI.widget.TEXT, {
       x: Layout.leftMargin,
-      y: 316,
+      y: Layout.y(316),
       w: Layout.contentWidth,
       h: 24,
       text: routeSteps[0].eta,
@@ -330,7 +330,7 @@ Page({
 
     finishButton = hmUI.createWidget(hmUI.widget.BUTTON, {
       x: Layout.leftMargin,
-      y: 360,
+      y: Layout.y(360),
       w: Layout.contentWidth,
       h: 50,
       radius: 25,

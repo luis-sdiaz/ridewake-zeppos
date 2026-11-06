@@ -12,20 +12,20 @@ Aplicación nativa para Zepp OS que demuestra un flujo de acompañamiento de via
 
 En trayectos urbanos, un pasajero puede distraerse, quedarse dormido o perder la referencia de su ubicación y sobrepasar su parada. RideWake Band aborda este problema mediante una experiencia compacta que presenta el progreso del viaje y comunica los hitos relevantes con color y vibración.
 
-Esta versión es un prototipo funcional para Xiaomi Smart Band 7. Implementa el flujo completo de interfaz y un motor local de simulación; no consume todavía GPS, rutas de transporte ni datos de llegada en tiempo real.
+Esta versión es un prototipo funcional para Xiaomi Smart Band 7 y mantiene compatibilidad de desarrollo con el emulador oficial de Amazfit Band 7. Implementa el flujo completo de interfaz y un motor local de simulación; no consume todavía GPS, rutas de transporte ni datos de llegada en tiempo real.
 
 ## Ficha técnica y entorno
 
 | Propiedad | Especificación |
 |---|---|
-| Hardware objetivo | Xiaomi Smart Band 7 |
-| Pantalla | AMOLED, 192 × 490 px |
+| Hardware objetivo | Xiaomi Smart Band 7; emulación compatible con Amazfit Band 7 |
+| Pantalla | 192 × 490 px (Xiaomi) / 194 × 368 px (Amazfit) |
 | Interacción | Pantalla táctil capacitiva y motor háptico integrado |
-| Identificador Zepp | `deviceSource: 263` |
+| Identificador Zepp | `deviceSource: 263` (Xiaomi) / `254` (Amazfit) |
 | Target del proyecto | `band-7` |
 | Runtime | Zepp OS 1.0, JavaScript ES6 sobre QuickJS |
 | API declarada | Compatible `1.0.0`, target `1.0.1`, mínima `1.0.0` |
-| CLI de desarrollo | `@zeppos/zeus-cli@1.8.2` |
+| CLI de desarrollo | `@zeppos/zeus-cli@1.9.3` |
 | Permiso | `device:os.vibrate` |
 | Versión de la aplicación | `1.0.0` — código `1` |
 | Formato de distribución | Paquete `.zab` |
@@ -38,7 +38,7 @@ La aplicación utiliza las primitivas globales de Zepp OS 1.0: `App`, `Page`, `h
 ridewake-zeppos/
 ├── app.json                    # Manifiesto, runtime, permiso, páginas y target
 ├── app.js                      # Ciclo de vida global y registro de diagnóstico
-├── package.json                # Scripts npm y Zeus CLI fijado en 1.8.2
+├── package.json                # Scripts npm y Zeus CLI fijado en 1.9.3
 ├── package-lock.json           # Resolución reproducible de herramientas
 ├── assets/
 │   └── band-7/
@@ -134,7 +134,7 @@ Al llegar, el temporizador se detiene. La función compartida `stopSimulation()`
 | `Layout.leftMargin` | 16 px |
 | `Layout.contentWidth` | 160 px |
 
-La interfaz reserva 16 px a cada lado. Los controles principales utilizan un ancho máximo de 160 px para reducir recortes cerca de los bordes curvos de la pantalla.
+La interfaz reserva 16 px a cada lado. Los controles principales utilizan un ancho máximo de 160 px para reducir recortes cerca de los bordes curvos de la pantalla. Las coordenadas verticales se compactan automáticamente con `hmSetting.getDeviceInfo()` cuando la pantalla es más baja que los 490 px del diseño base.
 
 ## Internacionalización y accesibilidad
 
@@ -177,7 +177,7 @@ npm install
 También puede instalarse globalmente la misma versión:
 
 ```bash
-npm install -g @zeppos/zeus-cli@1.8.2
+npm install -g @zeppos/zeus-cli@1.9.3
 ```
 
 ### Compilación
@@ -220,7 +220,7 @@ ROLLUP: 6 archivos
 QJSC: 6 archivos
 ```
 
-Zeus 1.8.2 emite un mensaje no bloqueante durante el redimensionado automático del icono para `deviceSource: 263`; posteriormente convierte el PNG, compila los seis bundles QuickJS y genera el `.zab`.
+Zeus 1.9.3 reconoce ambos `deviceSource`, redimensiona el icono a 96 px para Amazfit Band 7, compila los seis bundles QuickJS y genera el `.zab`.
 
 ## Alcance y trabajo pendiente
 

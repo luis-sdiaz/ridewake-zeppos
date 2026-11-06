@@ -1,10 +1,15 @@
 let selectedDestination = null
 let hapticMode = 'normal'
+let themeMode = 'dark'
 
 function getGlobalState() {
   const app = getApp()
   if (!app._options.globalData) app._options.globalData = {}
-  return app._options.globalData
+  const globalState = app._options.globalData
+  if (globalState.themeMode !== 'dark' && globalState.themeMode !== 'light') {
+    globalState.themeMode = themeMode
+  }
+  return globalState
 }
 
 export function setSelectedDestination(destination) {
@@ -34,4 +39,18 @@ export function getHapticMode() {
   return savedMode === 'normal' || savedMode === 'strong'
     ? savedMode
     : hapticMode
+}
+
+export function setThemeMode(mode) {
+  if (mode === 'dark' || mode === 'light') {
+    themeMode = mode
+    getGlobalState().themeMode = mode
+  }
+}
+
+export function getThemeMode() {
+  const savedMode = getGlobalState().themeMode
+  return savedMode === 'dark' || savedMode === 'light'
+    ? savedMode
+    : themeMode
 }

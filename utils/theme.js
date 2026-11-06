@@ -1,18 +1,57 @@
-export const Colors = {
+export const Palette = {
   Cyan500: 0x59D9FF,
   Mint400: 0x72E4C1,
   Amber400: 0xFFC857,
   Coral400: 0xFF6B6B,
-  Navy950: 0x020405,
-  Navy900: 0x071015,
-  Navy700: 0x123442,
+  Navy950: 0x0A1118,
+  Navy900: 0x111C26,
+  Navy700: 0x1B2A38,
   White: 0xFFFFFF,
   Slate300: 0xB6C4CA,
-  Slate350: 0x9DB3BD,
-  Slate500: 0x82959E,
+  Slate350: 0x8FA3B8,
+  Slate500: 0x506578,
   Ink: 0x001018,
   DisabledSurface: 0x16262D,
-  DisabledContent: 0x60737C
+  DisabledContent: 0x60737C,
+  LightBg: 0xF0F4F8,
+  LightCard: 0xFFFFFF,
+  LightButton: 0xD9E2EC,
+  LightTextSecondary: 0x334E68,
+  LightTextMuted: 0x627D98
+}
+
+// Alias retrocompatible para las pantallas que consumen tokens absolutos.
+export const Colors = Palette
+
+const Themes = {
+  dark: {
+    bg: Palette.Navy950,
+    cardBg: Palette.Navy900,
+    btnSecondary: Palette.Navy700,
+    textPrimary: Palette.White,
+    textSecondary: Palette.Slate350,
+    textMuted: Palette.Slate500,
+    Cyan500: Palette.Cyan500,
+    Mint400: Palette.Mint400,
+    Amber400: Palette.Amber400,
+    Coral400: Palette.Coral400
+  },
+  light: {
+    bg: Palette.LightBg,
+    cardBg: Palette.LightCard,
+    btnSecondary: Palette.LightButton,
+    textPrimary: Palette.Navy950,
+    textSecondary: Palette.LightTextSecondary,
+    textMuted: Palette.LightTextMuted,
+    Cyan500: Palette.Cyan500,
+    Mint400: Palette.Mint400,
+    Amber400: Palette.Amber400,
+    Coral400: Palette.Coral400
+  }
+}
+
+export function getTheme(mode) {
+  return mode === 'light' ? Themes.light : Themes.dark
 }
 
 export const Type = {
@@ -23,9 +62,28 @@ export const Type = {
   caption: 12
 }
 
+const BASE_HEIGHT = 490
+let deviceHeight = BASE_HEIGHT
+
+try {
+  if (typeof hmSetting !== 'undefined' && hmSetting.getDeviceInfo) {
+    const currentDevice = hmSetting.getDeviceInfo()
+    if (currentDevice && currentDevice.height > 0) {
+      deviceHeight = currentDevice.height
+    }
+  }
+} catch (error) {
+  deviceHeight = BASE_HEIGHT
+}
+
 export const Layout = {
   width: 192,
-  height: 490,
+  height: deviceHeight,
+  baseHeight: BASE_HEIGHT,
   contentWidth: 160,
-  leftMargin: 16
+  leftMargin: 16,
+  y(value) {
+    if (deviceHeight >= BASE_HEIGHT) return value
+    return Math.round(value * deviceHeight / BASE_HEIGHT)
+  }
 }

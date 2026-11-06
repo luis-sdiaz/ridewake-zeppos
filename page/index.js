@@ -5,7 +5,7 @@ import { destroyHaptics, initHaptics, vibrateShort } from '../utils/haptics'
 function textBase(y, h, size, color) {
   return {
     x: Layout.leftMargin,
-    y,
+    y: Layout.y(y),
     w: Layout.contentWidth,
     h,
     text_size: size,
@@ -22,7 +22,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: 0,
-      y: 0,
+      y: Layout.y(0),
       w: Layout.width,
       h: Layout.height,
       color: Colors.Navy950
@@ -45,7 +45,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.FILL_RECT, {
       x: 29,
-      y: 228,
+      y: Layout.y(228),
       w: 134,
       h: 26,
       radius: 13,
@@ -54,7 +54,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: 32,
-      y: 228,
+      y: Layout.y(228),
       w: 128,
       h: 26,
       text: t('home_status'),
@@ -66,7 +66,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.BUTTON, {
       x: 16,
-      y: 270,
+      y: Layout.y(270),
       w: 160,
       h: 54,
       radius: 27,
@@ -83,7 +83,7 @@ Page({
 
     hmUI.createWidget(hmUI.widget.BUTTON, {
       x: 16,
-      y: 340,
+      y: Layout.y(340),
       w: 160,
       h: 48,
       radius: 24,
