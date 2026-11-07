@@ -1,56 +1,77 @@
-let selectedDestination = null
-let hapticMode = 'normal'
-let themeMode = 'light'
-
-function getGlobalState() {
-  const app = getApp()
-  if (!app._options.globalData) app._options.globalData = {}
-  const globalState = app._options.globalData
-  if (globalState.themeMode !== 'dark' && globalState.themeMode !== 'light') {
-    globalState.themeMode = themeMode
-  }
-  return globalState
+const fallbackState = {
+  selectedDestination: null,
+  language: 'es',
+  vibrationEnabled: true,
+  vibrationIntensity: 'normal',
+  tripRunId: 0,
+  tripActive: false
 }
 
-export function setSelectedDestination(destination) {
-  selectedDestination = destination
+export function getGlobalState() {
+  try {
+    if (typeof getApp === 'function') {
+      const app = getApp()
+      if (app && app._options) {
+        if (!app._options.globalData) app._options.globalData = {}
+        return app._options.globalData
+      }
+    }
+  } catch (error) {
+    console.log('RideWake: globalData unavailable')
+  }
+  return fallbackState
+}
+
+export function normalizeDestination(value) {
+  if (value === 'Casa' || value === 'home') return 'Casa'
+  if (value === 'Universidad' || value === 'university') return 'Universidad'
+  return null
+}
+
+export function setSelectedDestination(value) {
+  const destination = normalizeDestination(value)
   getGlobalState().selectedDestination = destination
+  return destination
 }
 
 export function getSelectedDestination() {
-  const savedDestination = getGlobalState().selectedDestination
-  return savedDestination === undefined ? selectedDestination : savedDestination
+  return normalizeDestination(getGlobalState().selectedDestination)
 }
 
-export function clearSession() {
-  selectedDestination = null
-  getGlobalState().selectedDestination = null
+export function setLanguage(value) {
+  if (value === 'es' || value === 'en') getGlobalState().language = value
 }
 
-export function setHapticMode(mode) {
-  if (mode === 'normal' || mode === 'strong') {
-    hapticMode = mode
-    getGlobalState().hapticMode = mode
+export function getLanguage() {
+  return getGlobalState().language === 'en' ? 'en' : 'es'
+}
+
+export function setVibrationEnabled(value) {
+  getGlobalState().vibrationEnabled = value === true
+}
+
+export function isVibrationEnabled() {
+  return getGlobalState().vibrationEnabled !== false
+}
+
+export function setVibrationIntensity(value) {
+  if (value === 'normal' || value === 'strong') {
+    getGlobalState().vibrationIntensity = value
   }
 }
 
-export function getHapticMode() {
-  const savedMode = getGlobalState().hapticMode
-  return savedMode === 'normal' || savedMode === 'strong'
-    ? savedMode
-    : hapticMode
+export function getVibrationIntensity() {
+  return getGlobalState().vibrationIntensity === 'strong' ? 'strong' : 'normal'
 }
 
-export function setThemeMode(mode) {
-  if (mode === 'dark' || mode === 'light') {
-    themeMode = mode
-    getGlobalState().themeMode = mode
-  }
+export function startTripSession() {
+  const state = getGlobalState()
+  const currentId = Number(state.tripRunId)
+  state.tripRunId = (isFinite(currentId) ? currentId : 0) + 1
+  state.tripActive = true
+  return state.tripRunId
 }
 
-export function getThemeMode() {
-  const savedMode = getGlobalState().themeMode
-  return savedMode === 'dark' || savedMode === 'light'
-    ? savedMode
-    : themeMode
+export function finishTripSession() {
+  getGlobalState().tripActive = false
 }

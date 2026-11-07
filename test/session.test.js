@@ -2,14 +2,13 @@ const assert = require('assert').strict
 const fs = require('fs')
 const path = require('path')
 
-const projectRoot = path.resolve(__dirname, '..')
-const sessionPath = path.join(projectRoot, 'utils', 'session.js')
+const sessionPath = path.join(__dirname, '..', 'utils', 'session.js')
 
 async function loadSession(globalData) {
   global.getApp = () => ({ _options: { globalData } })
   const source = fs.readFileSync(sessionPath, 'utf8')
-  const moduleUrl = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}#${Date.now()}`
-  return import(moduleUrl)
+  const url = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}#${Date.now()}`
+  return import(url)
 }
 
 async function run() {
@@ -19,38 +18,43 @@ async function run() {
     assert.ok(condition, message)
   }
   const previousGetApp = global.getApp
-
   try {
-    const globalData = {}
+    const globalData = {
+      selectedDestination: null,
+      language: 'es',
+      vibrationEnabled: true,
+      vibrationIntensity: 'normal',
+      tripRunId: 0,
+      tripActive: false
+    }
     const session = await loadSession(globalData)
-
-    check(session.getThemeMode() === 'light', 'El tema inicial debe ser claro')
-    check(session.getHapticMode() === 'normal', 'La vibración inicial debe ser normal')
     check(session.getSelectedDestination() === null, 'El destino inicial debe ser nulo')
+    check(session.getLanguage() === 'es', 'El idioma inicial debe ser español')
+    check(session.isVibrationEnabled(), 'La vibración debe iniciar activada')
+    check(session.getVibrationIntensity() === 'normal', 'La intensidad inicial debe ser normal')
 
-    session.setThemeMode('dark')
-    session.setHapticMode('strong')
-    session.setSelectedDestination('university')
-    check(session.getThemeMode() === 'dark', 'No se conservó el tema oscuro')
-    check(session.getHapticMode() === 'strong', 'No se conservó la vibración intensa')
-    check(session.getSelectedDestination() === 'university', 'No se conservó el destino')
-    check(globalData.themeMode === 'dark' && globalData.hapticMode === 'strong',
-      'Las preferencias no se guardaron en globalData')
+    session.setSelectedDestination('home')
+    session.setLanguage('en')
+    session.setVibrationEnabled(false)
+    session.setVibrationIntensity('strong')
+    check(globalData.selectedDestination === 'Casa', 'No normalizó Casa en globalData')
+    check(session.getLanguage() === 'en', 'No conservó inglés')
+    check(!session.isVibrationEnabled(), 'No conservó vibración desactivada')
+    check(session.getVibrationIntensity() === 'strong', 'No conservó intensidad fuerte')
 
-    session.clearSession()
-    check(session.getSelectedDestination() === null, 'clearSession no limpió el destino')
-    check(session.getThemeMode() === 'dark', 'clearSession reinició el tema')
-    check(session.getHapticMode() === 'strong', 'clearSession reinició la vibración')
-
-    session.setThemeMode('invalid')
-    session.setHapticMode('invalid')
-    check(session.getThemeMode() === 'dark', 'Un tema inválido alteró la preferencia')
-    check(session.getHapticMode() === 'strong', 'Un háptico inválido alteró la preferencia')
+    const firstRun = session.startTripSession()
+    const secondRun = session.startTripSession()
+    check(firstRun === 1 && secondRun === 2, 'El identificador de viaje no avanza')
+    check(globalData.tripActive === true, 'El viaje no quedó activo')
+    session.finishTripSession()
+    check(globalData.tripActive === false, 'El viaje no se finalizó')
+    check(globalData.selectedDestination === 'Casa' && globalData.language === 'en',
+      'Finalizar alteró destino o preferencias')
 
     return {
-      name: 'Persistencia de sesión',
+      name: 'Estado global de sesión',
       assertions,
-      detail: 'Tema, vibración y destino validados sin reinicios cruzados'
+      detail: 'Destino, idioma, vibración, intensidad y ciclo de viaje conservados en globalData'
     }
   } finally {
     if (previousGetApp === undefined) delete global.getApp
@@ -59,12 +63,8 @@ async function run() {
 }
 
 if (require.main === module) {
-  run()
-    .then((result) => console.log(`PASS ${result.name}: ${result.assertions} aserciones`))
-    .catch((error) => {
-      console.error(`FAIL Persistencia de sesión: ${error.stack || error.message}`)
-      process.exitCode = 1
-    })
+  run().then((result) => console.log(`PASS ${result.name}: ${result.assertions} aserciones`))
+    .catch((error) => { console.error(error); process.exitCode = 1 })
 }
 
 module.exports = { run }
