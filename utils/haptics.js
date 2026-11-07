@@ -1,57 +1,54 @@
-import { getHapticMode } from './session'
+import { getVibrationIntensity, isVibrationEnabled } from './session'
 
 let vibrator = null
-let stopTimerId = null
 
-export function initHaptics() {
-  if (!vibrator) {
-    vibrator = hmSensor.createSensor(hmSensor.id.VIBRATE)
+function getVibrator() {
+  if (vibrator) return vibrator
+  try {
+    if (typeof hmSensor !== 'undefined' && hmSensor.id &&
+        hmSensor.id.VIBRATE !== undefined &&
+        typeof hmSensor.createSensor === 'function') {
+      vibrator = hmSensor.createSensor(hmSensor.id.VIBRATE)
+    }
+  } catch (error) {
+    console.log('RideWake: VIBRATE sensor unavailable')
+  }
+  return vibrator
+}
+
+export function vibrateForState(state) {
+  if (!isVibrationEnabled()) return false
+  if (state !== 'EARLY_ALERT' && state !== 'NEAR' && state !== 'ARRIVED') {
+    return false
+  }
+
+  const sensor = getVibrator()
+  if (!sensor || typeof sensor.stop !== 'function' ||
+      typeof sensor.start !== 'function') return false
+
+  let scene = 25
+  if (state === 'EARLY_ALERT') {
+    scene = getVibrationIntensity() === 'strong' ? 24 : 23
+  }
+
+  try {
+    sensor.stop()
+    sensor.scene = scene
+    sensor.start()
+    return true
+  } catch (error) {
+    console.log('RideWake: vibration failed')
+    return false
   }
 }
 
 export function stopVibration() {
-  if (stopTimerId !== null) {
-    try {
-      timer.stopTimer(stopTimerId)
-    } catch (error) {
-      console.log('Unable to stop haptic timer')
-    }
-    stopTimerId = null
+  if (!vibrator) return
+  try {
+    if (typeof vibrator.stop === 'function') vibrator.stop()
+  } catch (error) {
+    console.log('RideWake: vibration stop failed')
   }
-
-  if (vibrator) {
-    try {
-      vibrator.stop()
-    } catch (error) {
-      console.log('Unable to stop vibration')
-    }
-  }
-}
-
-export function vibrateShort() {
-  initHaptics()
-  const duration = getHapticMode() === 'strong' ? 180 : 90
-
-  stopVibration()
-  vibrator.scene = 1
-  vibrator.start()
-
-  stopTimerId = timer.createTimer(duration, 2147483647, function () {
-    stopVibration()
-  }, {})
-}
-
-export function vibrateWarning() {
-  initHaptics()
-  const duration = getHapticMode() === 'strong' ? 650 : 400
-
-  stopVibration()
-  vibrator.scene = 5
-  vibrator.start()
-
-  stopTimerId = timer.createTimer(duration, 2147483647, function () {
-    stopVibration()
-  }, {})
 }
 
 export function destroyHaptics() {

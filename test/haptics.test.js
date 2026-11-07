@@ -3,47 +3,37 @@ const fs = require('fs')
 const path = require('path')
 const vm = require('vm')
 
-const projectRoot = path.resolve(__dirname, '..')
-const hapticsPath = path.join(projectRoot, 'utils', 'haptics.js')
+const hapticsPath = path.join(__dirname, '..', 'utils', 'haptics.js')
 
 function createHarness() {
-  let mode = 'normal'
-  let nextTimerId = 1
-  const calls = { starts: 0, stops: 0, timers: [], stoppedTimers: [] }
+  let enabled = true
+  let intensity = 'normal'
+  const calls = { created: 0, started: 0, stopped: 0 }
   const vibrator = {
     scene: null,
-    start() { calls.starts += 1 },
-    stop() { calls.stops += 1 }
+    start() { calls.started += 1 },
+    stop() { calls.stopped += 1 }
   }
   const context = {
-    getHapticMode: () => mode,
+    isVibrationEnabled: () => enabled,
+    getVibrationIntensity: () => intensity,
     hmSensor: {
-      id: { VIBRATE: 'VIBRATE' },
-      createSensor: () => vibrator
-    },
-    timer: {
-      createTimer(delay, period, callback, options) {
-        const record = { id: nextTimerId, delay, period, callback, options }
-        nextTimerId += 1
-        calls.timers.push(record)
-        return record.id
-      },
-      stopTimer(id) { calls.stoppedTimers.push(id) }
+      id: { VIBRATE: 1 },
+      createSensor() { calls.created += 1; return vibrator }
     },
     console
   }
-
   let source = fs.readFileSync(hapticsPath, 'utf8')
     .replace(/^import[^\n]+\n/, '')
     .replace(/export function /g, 'function ')
-  source += '\nthis.hapticsApi = { initHaptics, stopVibration, vibrateShort, vibrateWarning, destroyHaptics }\n'
+  source += '\nthis.api = { vibrateForState, stopVibration, destroyHaptics }'
   vm.runInNewContext(source, context, { filename: hapticsPath })
-
   return {
-    api: context.hapticsApi,
+    api: context.api,
     calls,
     vibrator,
-    setMode(value) { mode = value }
+    setEnabled(value) { enabled = value },
+    setIntensity(value) { intensity = value }
   }
 }
 
@@ -55,40 +45,38 @@ function run() {
   }
   const harness = createHarness()
 
-  harness.api.vibrateShort()
-  check(harness.calls.starts === 1, 'vibrateShort no inició el sensor')
-  check(harness.vibrator.scene === 1, 'vibrateShort no configuró la escena corta')
-  check(harness.calls.timers[0].delay === 90, 'La vibración normal corta debe durar 90 ms')
-  harness.calls.timers[0].callback()
-  check(harness.calls.stoppedTimers.includes(harness.calls.timers[0].id),
-    'El callback corto no eliminó su temporizador')
-
-  harness.setMode('strong')
-  harness.api.vibrateWarning()
-  check(harness.calls.starts === 2, 'vibrateWarning no inició el sensor')
-  check(harness.vibrator.scene === 5, 'vibrateWarning no configuró la escena de alerta')
-  check(harness.calls.timers[1].delay === 650, 'La alerta intensa debe durar 650 ms')
+  check(!harness.api.vibrateForState('MONITORING'), 'MONITORING no debe vibrar')
+  check(harness.calls.created === 0, 'El sensor no debe crearse antes de necesitarse')
+  check(harness.api.vibrateForState('EARLY_ALERT'), 'EARLY_ALERT debe vibrar')
+  check(harness.vibrator.scene === 23, 'Intensidad normal debe usar escena 23')
+  harness.setIntensity('strong')
+  harness.api.vibrateForState('EARLY_ALERT')
+  check(harness.vibrator.scene === 24, 'Intensidad fuerte anticipada debe usar escena 24')
+  harness.api.vibrateForState('NEAR')
+  check(harness.vibrator.scene === 25, 'NEAR debe usar escena 25')
+  harness.api.vibrateForState('ARRIVED')
+  check(harness.vibrator.scene === 25, 'ARRIVED debe usar escena 25')
+  check(harness.calls.created === 1, 'Debe existir una sola instancia VIBRATE')
+  check(harness.calls.stopped === harness.calls.started,
+    'Cada start debe ir precedido por stop')
 
   harness.api.destroyHaptics()
-  check(harness.calls.stoppedTimers.includes(harness.calls.timers[1].id),
-    'destroyHaptics no detuvo el temporizador pendiente')
-  check(harness.calls.stops >= 3, 'destroyHaptics no detuvo el vibrador')
+  check(harness.calls.stopped === harness.calls.started + 1,
+    'destroyHaptics debe detener el sensor')
+  harness.setEnabled(false)
+  check(!harness.api.vibrateForState('NEAR'), 'Vibración desactivada debe respetarse')
+  check(harness.calls.created === 1, 'No debe crear sensor con vibración desactivada')
 
   return {
-    name: 'Ciclo de vida háptico',
+    name: 'Vibración Zepp OS 1.0',
     assertions,
-    detail: 'Duraciones, escenas y liberación de temporizadores/sensor verificadas'
+    detail: 'Escenas finitas 23/24/25, instancia única, desactivación y limpieza validadas'
   }
 }
 
 if (require.main === module) {
-  try {
-    const result = run()
-    console.log(`PASS ${result.name}: ${result.assertions} aserciones`)
-  } catch (error) {
-    console.error(`FAIL Ciclo de vida háptico: ${error.stack || error.message}`)
-    process.exitCode = 1
-  }
+  try { const result = run(); console.log(`PASS ${result.name}: ${result.assertions} aserciones`) }
+  catch (error) { console.error(error); process.exitCode = 1 }
 }
 
 module.exports = { run }
