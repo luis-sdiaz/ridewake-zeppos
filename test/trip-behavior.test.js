@@ -20,6 +20,8 @@ async function loadPrediction() {
 function createRuntime(shared, predictionApi) {
   const widgets = []
   const calls = { routes: [], back: 0, haptics: [], destroyHaptics: 0 }
+  const timers = new Map()
+  let nextTimer = 0
   let page
   const hmUI = {
     widget: { TEXT: 'TEXT', BUTTON: 'BUTTON', FILL_RECT: 'FILL_RECT' },
@@ -40,6 +42,11 @@ function createRuntime(shared, predictionApi) {
   }
   const context = {
     Page(value) { page = value }, hmUI, console, Object, Math,
+    timer: {
+      createTimer(delay, repeat, callback) { const id = nextTimer++; timers.set(id, callback); return id },
+      stopTimer(id) { timers.delete(id) }
+    },
+    getGlobalState: () => shared,
     hmApp: {
       gotoPage(options) { calls.routes.push(options.url) },
       goBack() { calls.back += 1 }
@@ -65,8 +72,11 @@ function createRuntime(shared, predictionApi) {
     layoutValue: (compactValue, expandedValue) => expandedValue,
     measureWrappedText: (text, size, width, minimumHeight) => minimumHeight
   }
+  vm.runInNewContext(fs.readFileSync(path.join(projectRoot, 'utils', 'nativeTimer.js'), 'utf8')
+    .replace(/export function /g, 'function '), context)
   return {
-    context, widgets, calls,
+    context, widgets, calls, timers,
+    tick() { Array.from(timers.values()).forEach((callback) => callback()) },
     load(name) {
       const source = fs.readFileSync(path.join(projectRoot, 'page', `${name}.js`), 'utf8')
       vm.runInNewContext(stripImports(source), context, { filename: `${name}.js` })
@@ -118,23 +128,25 @@ async function run() {
   runtime = createRuntime(shared, predictionApi)
   const tripPage = runtime.load('trip')
   byText = (text) => runtime.widgets.find((widget) => widget.props.text === text)
-  const advance = byText('trip_advance')
-  advance.props.click_func()
+  check(!byText('trip_advance') && runtime.timers.size === 1, 'Viaje no inició automáticamente')
+  const staleCallback = Array.from(runtime.timers.values())[0]
+  runtime.tick()
   check(byText('state_early'), 'Casa no pasó a EARLY_ALERT')
-  advance.props.click_func()
+  runtime.tick()
   check(byText('state_near'), 'Casa no pasó a NEAR')
-  advance.props.click_func()
+  runtime.tick()
   check(byText('state_arrived'), 'Casa no pasó a ARRIVED')
   check(runtime.calls.haptics.join(',') === 'EARLY_ALERT,NEAR,ARRIVED',
     'Vibró más de una vez o con estados incorrectos')
-  advance.props.click_func()
+  runtime.tick()
+  check(runtime.timers.size === 0, 'ARRIVED no detuvo el timer')
   check(runtime.calls.haptics.length === 3, 'ARRIVED volvió a vibrar sin transición')
   byText('trip_finish').props.click_func()
   check(runtime.calls.routes.includes('page/index') && shared.tripActive === false,
     'FINALIZAR no volvió a Inicio o dejó el viaje activo')
   tripPage.onDestroy()
   const updatesAfterDestroy = runtime.widgets.reduce((sum, widget) => sum + widget.updates, 0)
-  advance.props.click_func()
+  staleCallback()
   check(runtime.widgets.reduce((sum, widget) => sum + widget.updates, 0) === updatesAfterDestroy,
     'Un callback actualizó widgets después de onDestroy')
   check(runtime.calls.destroyHaptics >= 1, 'Viaje no liberó vibración')

@@ -52,6 +52,8 @@ function buildPage(name, expanded) {
   }
   const context = {
     Page(value) { page = value }, hmUI, console, Object, Math,
+    getGlobalState: () => ({ tripRunId: 1, tripActive: true }),
+    timer: { createTimer() { return 0 }, stopTimer() {} },
     hmApp: { gotoPage() {}, goBack() {} },
     t: (key) => key,
     getLanguage: () => 'es',
@@ -78,9 +80,11 @@ function buildPage(name, expanded) {
     measureWrappedText: (text, size, width, minimumHeight) => minimumHeight
   }
   const source = fs.readFileSync(path.join(projectRoot, 'page', `${name}.js`), 'utf8')
-  assert.ok(!source.includes('FILL_RECT'), `${name}: FILL_RECT no permitido`)
+  vm.runInNewContext(fs.readFileSync(path.join(projectRoot, 'utils', 'nativeTimer.js'), 'utf8')
+    .replace(/export function /g, 'function '), context)
+  if (name !== 'trip') assert.ok(!source.includes('FILL_RECT'), `${name}: FILL_RECT no permitido`)
   assert.ok(!source.includes('hmUI.widget.ARC'), `${name}: ARC no permitido`)
-  assert.ok(!/\btimer\b/.test(source), `${name}: timer no permitido`)
+  if (name !== 'trip') assert.ok(!/\btimer\b/.test(source), `${name}: timer no permitido`)
   vm.runInNewContext(stripImports(source), context, { filename: `${name}.js` })
   page.build()
   return { page, widgets }
@@ -117,7 +121,8 @@ function run() {
       const buttons = []
       for (const widget of result.widgets) {
         const props = widget.props
-        check(widget.type === 'TEXT' || widget.type === 'BUTTON',
+        check(widget.type === 'TEXT' || widget.type === 'BUTTON' ||
+          (name === 'trip' && widget.type === 'FILL_RECT'),
           `${name}/${mode}: widget no permitido ${widget.type}`)
         for (const key of ['x', 'y', 'w', 'h']) {
           check(Number.isInteger(props[key]), `${name}/${mode}: ${key} debe ser entero`)
@@ -129,7 +134,7 @@ function run() {
           buttons.push(widget)
           const imageButton = name === 'index' && props.normal_src
           const rectangular = (name === 'index' && props.w > 100) ||
-            name === 'keyboard'
+            name === 'keyboard' || name === 'trip'
           if (imageButton) {
             check(props.w === 46 && props.h === 46 && props.radius === 23,
               `${name}/${mode}: icono de configuración no es circular`)

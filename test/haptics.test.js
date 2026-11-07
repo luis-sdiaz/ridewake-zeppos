@@ -55,7 +55,7 @@ function run() {
   harness.api.vibrateForState('NEAR')
   check(harness.vibrator.scene === 25, 'NEAR debe usar escena 25')
   harness.api.vibrateForState('ARRIVED')
-  check(harness.vibrator.scene === 25, 'ARRIVED debe usar escena 25')
+  check(harness.vibrator.scene === 9, 'ARRIVED debe usar escena finita 9 (cuatro pulsos)')
   check(harness.calls.created === 1, 'Debe existir una sola instancia VIBRATE')
   check(harness.calls.stopped === harness.calls.started,
     'Cada start debe ir precedido por stop')
@@ -70,7 +70,7 @@ function run() {
   return {
     name: 'Vibración Zepp OS 1.0',
     assertions,
-    detail: 'Escenas finitas 23/24/25, instancia única, desactivación y limpieza validadas'
+    detail: 'Escenas finitas 23/24/25/9, instancia única, desactivación y limpieza validadas'
   }
 }
 

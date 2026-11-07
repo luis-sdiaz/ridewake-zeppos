@@ -10,6 +10,7 @@ const suites = [
   "./screen-bounds.test.js",
   "./routeSimulator.test.js",
   "./trip-behavior.test.js",
+  "./trip-automatic.test.js",
   "./haptics.test.js",
 ];
 

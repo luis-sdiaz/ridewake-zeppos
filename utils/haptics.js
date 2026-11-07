@@ -30,6 +30,8 @@ export function vibrateForState(state) {
   if (state === 'EARLY_ALERT') {
     scene = getVibrationIntensity() === 'strong' ? 24 : 23
   }
+  // Finite native scene: four pulses over 1200 ms, no delayed JS callbacks.
+  if (state === 'ARRIVED') scene = 9
 
   try {
     sensor.stop()
