@@ -12,6 +12,6 @@
     "zeppos-app-utils": "node_modules/@zeppos/zeus-cli/private-modules/zeppos-app-utils"
   },
   "devDependencies": {
-    "@zeppos/zeus-cli": "1.9.3"
+    "@zeppos/zeus-cli": "1.8.2"
   }
 }
