@@ -1,141 +1,120 @@
+import { getLanguage, setLanguage } from './session'
+
 const strings = {
   es: {
-    brand_title: 'RIDEWAKE AI',
-    home_headline: 'Tu viaje, bajo control',
-    home_status: 'LISTO',
-    btn_start_trip: 'Iniciar viaje',
-    btn_settings: 'Ajustes',
-    settings_title: 'AJUSTES',
-    settings_lang_label: 'Idioma',
-    settings_lang_btn: 'Español / English',
-    settings_theme_label: 'Tema',
-    settings_theme_dark: 'Oscuro',
-    settings_theme_light: 'Claro',
-    settings_haptic_label: 'Vibración',
-    settings_haptic_normal: 'Normal',
-    settings_haptic_strong: 'Intensa',
-    settings_about_label: 'Acerca de',
-    settings_version: 'RideWake Band v1.0.0',
-    settings_target: 'Xiaomi Band 7 (Zepp OS)',
-    settings_btn_back: 'Volver',
-    dest_header: 'DESTINO',
-    dest_subtitle: '¿A dónde vas?',
-    dest_title: '¿A dónde vas?',
-    dest_home: 'Casa',
-    dest_university: 'Universidad',
-    dest_continue: 'Continuar',
-    dest_back: 'Volver',
-    conf_title: 'CONFIRMAR',
-    conf_subtitle: 'Detalles del viaje',
-    conf_destination_label: 'Destino',
-    conf_eta_label: 'Tiempo estimado',
-    conf_dist_label: 'Distancia',
-    conf_btn_start: 'Comenzar viaje',
-    conf_btn_change: 'Cambiar destino',
-    confirmation_title: 'Destino confirmado',
-    confirmation_body: 'Te avisaremos antes de llegar',
+    brand: 'RIDEWAKE AI',
+    home_question: '¿A dónde vamos?',
+    home_choose: 'Elige un destino',
+    home_selected: 'Destino: ',
+    home_first: 'Elige primero un destino',
+    home_ready: 'Listo: ',
+    home_start: 'Iniciar viaje',
+    home_settings: 'AJUS',
+    home_nav_error: 'No se pudo abrir',
+    destination_title: 'DESTINO',
+    destination_route: 'Ruta de demostración',
+    destination_distance: 'Distancia: ',
+    destination_eta: 'ETA: ',
+    destination_change: 'CAMBIAR',
+    destination_continue: 'SEGUIR',
+    route_home: 'Centro · Av. Américas · Casa',
+    route_university: 'Centro · P. Nariño · Universidad',
+    confirmation_title: 'CONFIRMAR VIAJE',
+    confirmation_distance: 'Distancia: ',
+    confirmation_eta: 'ETA: ',
+    confirmation_message: 'RideWake te avisará antes de la parada',
+    confirmation_back: 'VOLVER',
+    confirmation_start: 'INICIAR',
     trip_title: 'VIAJE EN CURSO',
-    trip_eta_label: 'Llegada en',
-    trip_distance_label: 'Distancia',
-    trip_distance_remaining: 'DISTANCIA RESTANTE',
-    trip_eta_remaining: 'LLEGADA ESTIMADA',
-    trip_next_stop: 'PRÓXIMA PARADA',
-    trip_now: '¡Ahora!',
-    trip_status_monitoring: 'En camino',
-    trip_status_early: 'Aviso temprano',
-    trip_status_near: 'Cerca de tu parada',
-    trip_status_arrived: '¡Llegaste a tu parada!',
-    trip_btn_finish: 'Finalizar viaje',
-    trip_early_alert: 'Aviso temprano',
-    btn_finish_trip: 'Finalizar viaje'
+    trip_distance: 'Distancia: ',
+    trip_eta: 'ETA IA: ',
+    trip_next: 'Ref.: ',
+    trip_confidence: 'Estab.: ',
+    trip_demo: 'Motor local · datos DEMO',
+    trip_advance: 'AVANZAR',
+    trip_finish: 'FINALIZAR',
+    state_monitoring: 'EN RUTA',
+    state_early: 'AVISO ANTICIPADO',
+    state_near: 'MUY CERCA',
+    state_arrived: 'LLEGASTE',
+    reason_monitoring: 'Distancia y ETA seguras',
+    reason_early: 'Aviso: ETA ≤ 6 min o ≤ 1.2 km',
+    reason_near: 'Cerca: ETA ≤ 2 min o ≤ 0.35 km',
+    reason_arrived: 'Llegada: distancia ≤ 0.05 km',
+    settings_title: 'AJUSTES',
+    settings_language: 'Idioma',
+    settings_vibration: 'Vibración',
+    settings_intensity: 'Intensidad',
+    settings_on: 'SÍ',
+    settings_off: 'NO',
+    settings_normal: 'Normal',
+    settings_strong: 'Fuerte',
+    settings_about: 'RideWake AI · Zepp OS 1.0',
+    settings_back: 'VOLVER',
+    settings_summary_on: 'Vibración activa',
+    settings_summary_off: 'Vibración desactivada'
   },
   en: {
-    brand_title: 'RIDEWAKE AI',
-    home_headline: 'Your ride, under control',
-    home_status: 'READY',
-    btn_start_trip: 'Start trip',
-    btn_settings: 'Settings',
-    settings_title: 'SETTINGS',
-    settings_lang_label: 'Language',
-    settings_lang_btn: 'Español / English',
-    settings_theme_label: 'Theme',
-    settings_theme_dark: 'Dark',
-    settings_theme_light: 'Light',
-    settings_haptic_label: 'Vibration',
-    settings_haptic_normal: 'Normal',
-    settings_haptic_strong: 'Strong',
-    settings_about_label: 'About',
-    settings_version: 'RideWake Band v1.0.0',
-    settings_target: 'Xiaomi Band 7 (Zepp OS)',
-    settings_btn_back: 'Back',
-    dest_header: 'DESTINATION',
-    dest_subtitle: 'Where to?',
-    dest_title: 'Choose destination',
-    dest_home: 'Home',
-    dest_university: 'University',
-    dest_continue: 'Continue',
-    dest_back: 'Back',
-    conf_title: 'CONFIRM',
-    conf_subtitle: 'Trip details',
-    conf_destination_label: 'Destination',
-    conf_eta_label: 'Estimated time',
-    conf_dist_label: 'Distance',
-    conf_btn_start: 'Start trip',
-    conf_btn_change: 'Change destination',
-    confirmation_title: 'Destination confirmed',
-    confirmation_body: 'We will alert you before arrival',
+    brand: 'RIDEWAKE AI',
+    home_question: 'Where are we going?',
+    home_choose: 'Choose a destination',
+    home_selected: 'Destination: ',
+    home_first: 'Choose a destination first',
+    home_ready: 'Ready: ',
+    home_start: 'Start trip',
+    home_settings: 'SET',
+    home_nav_error: 'Could not open',
+    destination_title: 'DESTINATION',
+    destination_route: 'Demo route',
+    destination_distance: 'Distance: ',
+    destination_eta: 'ETA: ',
+    destination_change: 'CHANGE',
+    destination_continue: 'NEXT',
+    route_home: 'Downtown · Americas Ave. · Home',
+    route_university: 'Downtown · Nariño · University',
+    confirmation_title: 'CONFIRM TRIP',
+    confirmation_distance: 'Distance: ',
+    confirmation_eta: 'ETA: ',
+    confirmation_message: 'RideWake alerts you before your stop',
+    confirmation_back: 'BACK',
+    confirmation_start: 'START',
     trip_title: 'ACTIVE TRIP',
-    trip_eta_label: 'Arriving in',
-    trip_distance_label: 'Distance',
-    trip_distance_remaining: 'DISTANCE REMAINING',
-    trip_eta_remaining: 'ESTIMATED ARRIVAL',
-    trip_next_stop: 'NEXT STOP',
-    trip_now: 'Now!',
-    trip_status_monitoring: 'On the way',
-    trip_status_early: 'Early alert',
-    trip_status_near: 'Near your stop',
-    trip_status_arrived: 'Arrived at stop!',
-    trip_btn_finish: 'Finish trip',
-    trip_early_alert: 'Early alert',
-    btn_finish_trip: 'Finish trip'
+    trip_distance: 'Distance: ',
+    trip_eta: 'ML ETA: ',
+    trip_next: 'Ref.: ',
+    trip_confidence: 'Stab.: ',
+    trip_demo: 'Local engine · DEMO data',
+    trip_advance: 'ADVANCE',
+    trip_finish: 'FINISH',
+    state_monitoring: 'ON ROUTE',
+    state_early: 'EARLY WARNING',
+    state_near: 'VERY CLOSE',
+    state_arrived: 'ARRIVED',
+    reason_monitoring: 'Distance and ETA remain safe',
+    reason_early: 'Alert: ETA ≤ 6 min or ≤ 1.2 km',
+    reason_near: 'Near: ETA ≤ 2 min or ≤ 0.35 km',
+    reason_arrived: 'Arrival: distance ≤ 0.05 km',
+    settings_title: 'SETTINGS',
+    settings_language: 'Language',
+    settings_vibration: 'Vibration',
+    settings_intensity: 'Intensity',
+    settings_on: 'ON',
+    settings_off: 'OFF',
+    settings_normal: 'Normal',
+    settings_strong: 'Strong',
+    settings_about: 'RideWake AI · Zepp OS 1.0',
+    settings_back: 'BACK',
+    settings_summary_on: 'Vibration enabled',
+    settings_summary_off: 'Vibration disabled'
   }
 }
 
-let currentLang = 'es'
-
-function getGlobalState() {
-  const app = getApp()
-  if (!app._options.globalData) app._options.globalData = {}
-  return app._options.globalData
-}
-
-export function setLanguage(lang) {
-  if (strings[lang]) {
-    currentLang = lang
-    getGlobalState().language = lang
-  }
-}
-
-export function getLanguage() {
-  const savedLanguage = getGlobalState().language
-  return strings[savedLanguage] ? savedLanguage : currentLang
-}
+export { getLanguage, setLanguage }
 
 export function t(key) {
-  if (key === null || key === undefined) return ''
-
-  const normalizedKey = String(key)
   const language = getLanguage()
-  const fallbackLanguage = language === 'es' ? 'en' : 'es'
-  const activeStrings = strings[language] || strings.es
-  const fallbackStrings = strings[fallbackLanguage] || strings.es
-
-  if (activeStrings[normalizedKey] !== undefined) {
-    return activeStrings[normalizedKey]
-  }
-  if (fallbackStrings[normalizedKey] !== undefined) {
-    return fallbackStrings[normalizedKey]
-  }
-
-  return normalizedKey
+  const active = strings[language] || strings.es
+  if (active[key] !== undefined) return active[key]
+  if (strings.es[key] !== undefined) return strings.es[key]
+  return String(key)
 }

@@ -57,11 +57,37 @@ function run() {
     }
   }
 
-  for (const key of ['brand_title', 'dest_home', 'trip_title', 'settings_title']) {
+  for (const key of [
+    'brand',
+    'home_question',
+    'destination_title',
+    'confirmation_title',
+    'trip_title',
+    'state_arrived',
+    'settings_title'
+  ]) {
     check(Object.prototype.hasOwnProperty.call(dictionaries.es, key),
       `Falta la clave crítica es.${key}`)
     check(Object.prototype.hasOwnProperty.call(dictionaries.en, key),
       `Falta la clave crítica en.${key}`)
+  }
+
+  for (const language of ['es', 'en']) {
+    const dictionary = dictionaries[language]
+    check((dictionary.home_selected + (language === 'es' ? 'Universidad' : 'University')).length <= 24,
+      `${language}: home_selected puede desbordar el ancho útil`)
+    for (const key of ['state_monitoring', 'state_early', 'state_near', 'state_arrived']) {
+      check(dictionary[key].length <= 24,
+        `${language}.${key} es demasiado largo para el estado`)
+    }
+    for (const key of ['reason_monitoring', 'reason_early', 'reason_near', 'reason_arrived']) {
+      check(dictionary[key].length <= 36,
+        `${language}.${key} excede dos líneas previsibles`)
+    }
+    for (const key of ['trip_advance', 'trip_finish', 'settings_normal', 'settings_strong', 'settings_back']) {
+      check(dictionary[key].length <= 9,
+        `${language}.${key} es demasiado largo para un botón circular`)
+    }
   }
 
   return {
