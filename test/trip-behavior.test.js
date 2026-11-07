@@ -3,211 +3,158 @@ const fs = require('fs')
 const path = require('path')
 const vm = require('vm')
 
-const projectRoot = path.resolve(__dirname, '..')
-const tripPath = path.join(projectRoot, 'page', 'trip.js')
+const projectRoot = path.join(__dirname, '..')
 
 function stripImports(source) {
   return source.replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*\r?\n/gm, '')
 }
 
-function createHarness() {
-  const routeSteps = [
-    { stop: 'Parque Bolívar', distance: '3.2 km', eta: '12 min', progress: 0.10, state: 'MONITORING' },
-    { stop: 'Av. Las Américas', distance: '1.5 km', eta: '5 min', progress: 0.50, state: 'EARLY_ALERT' },
-    { stop: 'Calle 18 (Cerca)', distance: '0.3 km', eta: '1 min', progress: 0.90, state: 'NEAR' },
-    { stop: 'Destino Casa', distance: '0.0 km', eta: '¡Ahora!', progress: 1.0, state: 'ARRIVED' }
-  ]
-  const theme = {
-    bg: 1, cardBg: 2, btnSecondary: 3, textPrimary: 4, textSecondary: 5,
-    accent: 6, success: 7, warning: 8, danger: 9, onAccent: 10, divider: 11
-  }
-  const translations = {
-    trip_status_monitoring: 'En camino',
-    trip_status_early: 'Aviso temprano',
-    trip_status_near: 'Cerca de tu parada',
-    trip_status_arrived: '¡Llegaste a tu parada!',
-    trip_now: '¡Ahora!',
-    trip_title: 'VIAJE EN CURSO',
-    dest_home: 'Casa',
-    trip_next_stop: 'PRÓXIMA PARADA',
-    trip_distance_remaining: 'DISTANCIA RESTANTE',
-    trip_eta_remaining: 'LLEGADA ESTIMADA',
-    trip_btn_finish: 'Finalizar viaje'
-  }
-  const calls = {
-    timersCreated: [],
-    timersStopped: [],
-    short: 0,
-    warning: 0,
-    stopVibration: 0,
-    destroyHaptics: 0,
-    clearSession: 0,
-    brightScreen: 0,
-    routes: []
-  }
-  const widgets = []
-  let page = null
-  let nextTimerId = 1
+async function loadPrediction() {
+  const modelSource = fs.readFileSync(path.join(projectRoot, 'utils', 'mlModel.js'), 'utf8')
+  const modelUrl = `data:text/javascript;base64,${Buffer.from(modelSource).toString('base64')}`
+  const source = fs.readFileSync(path.join(projectRoot, 'utils', 'prediction.js'), 'utf8')
+    .replace("'./mlModel'", `'${modelUrl}'`)
+  return import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`)
+}
 
+function createRuntime(shared, predictionApi) {
+  const widgets = []
+  const calls = { routes: [], back: 0, haptics: [], destroyHaptics: 0 }
+  let page
   const hmUI = {
-    widget: { FILL_RECT: 'FILL_RECT', TEXT: 'TEXT', BUTTON: 'BUTTON' },
+    widget: { TEXT: 'TEXT', BUTTON: 'BUTTON' },
     prop: { MORE: 'MORE', TEXT: 'TEXT' },
-    align: { CENTER_H: 'CENTER_H', CENTER_V: 'CENTER_V' },
-    text_style: { WRAP: 'WRAP' },
-    createWidget(type, options) {
+    align: { CENTER_H: 1, CENTER_V: 2 },
+    text_style: { NONE: 0, WRAP: 1 },
+    createWidget(type, props) {
       const widget = {
-        type,
-        props: { ...options },
+        type, props: Object.assign({}, props), updates: 0,
         setProperty(property, value) {
-          if (property === hmUI.prop.TEXT) this.props.text = value
+          this.updates += 1
+          if (property === 'TEXT') this.props.text = value
           else Object.assign(this.props, value)
         }
       }
-      widgets.push(widget)
-      return widget
+      widgets.push(widget); return widget
     }
   }
-
-  const timer = {
-    createTimer(delay, period, callback, options) {
-      const record = { id: nextTimerId, delay, period, callback, options }
-      nextTimerId += 1
-      calls.timersCreated.push(record)
-      return record.id
-    },
-    stopTimer(timerId) { calls.timersStopped.push(timerId) }
-  }
-
   const context = {
-    Page(definition) { page = definition },
-    hmUI,
-    timer,
-    hmApp: { gotoPage(options) { calls.routes.push(options.url) } },
-    hmSetting: { setBrightScreen() { calls.brightScreen += 1 } },
-    Layout: {
-      width: 192,
-      height: 490,
-      contentWidth: 152,
-      leftMargin: 20,
-      innerWidth: 136,
-      innerMargin: 28,
-      cardRadius: 20,
-      y: (value) => value,
-      h: (value) => value
+    Page(value) { page = value }, hmUI, console, Object, Math,
+    hmApp: {
+      gotoPage(options) { calls.routes.push(options.url) },
+      goBack() { calls.back += 1 }
     },
-    Type: { brand: 18, body: 14, button: 16 },
-    getTheme: () => theme,
-    getThemeMode: () => 'light',
-    t: (key) => translations[key] || key,
-    getRouteSteps: () => routeSteps.map((step) => ({ ...step })),
-    getSelectedDestination: () => 'home',
-    clearSession: () => { calls.clearSession += 1 },
-    initHaptics() {},
-    stopVibration() { calls.stopVibration += 1 },
+    t: (key) => key,
+    getLanguage: () => shared.language,
+    getSelectedDestination: () => shared.destination,
+    setSelectedDestination(value) { shared.destination = value; return value },
+    getRouteSummary: predictionApi.getRouteSummary,
+    createPrediction: predictionApi.createPrediction,
+    advancePrediction: predictionApi.advancePrediction,
+    formatDistance: predictionApi.formatDistance,
+    formatEta: predictionApi.formatEta,
+    startTripSession() { shared.tripRunId += 1; shared.tripActive = true; return shared.tripRunId },
+    finishTripSession() { shared.tripActive = false },
+    vibrateForState(state) { calls.haptics.push(state); return true },
     destroyHaptics() { calls.destroyHaptics += 1 },
-    vibrateShort() { calls.short += 1 },
-    vibrateWarning() { calls.warning += 1 },
-    console,
-    Math
+    layoutValue: (compactValue, expandedValue) => expandedValue,
+    measureWrappedText: (text, size, width, minimumHeight) => minimumHeight
   }
-
-  vm.runInNewContext(stripImports(fs.readFileSync(tripPath, 'utf8')), context, {
-    filename: tripPath
-  })
-
-  return { calls, widgets, theme, getPage: () => page }
+  return {
+    context, widgets, calls,
+    load(name) {
+      const source = fs.readFileSync(path.join(projectRoot, 'page', `${name}.js`), 'utf8')
+      vm.runInNewContext(stripImports(source), context, { filename: `${name}.js` })
+      page.build()
+      return page
+    }
+  }
 }
 
-function run() {
+async function run() {
   let assertions = 0
-  const check = (condition, message) => {
-    assertions += 1
-    assert.ok(condition, message)
-  }
+  const check = (condition, message) => { assertions += 1; assert.ok(condition, message) }
+  const predictionApi = await loadPrediction()
+  const shared = { destination: null, language: 'es', tripRunId: 0, tripActive: false }
 
-  const harness = createHarness()
-  const page = harness.getPage()
-  check(page && typeof page.build === 'function', 'La página Viaje no registró build()')
-  page.build()
+  let runtime = createRuntime(shared, predictionApi)
+  runtime.load('index')
+  let byText = (text) => runtime.widgets.find((widget) => widget.props.text === text)
+  byText('IR').props.click_func()
+  check(runtime.calls.routes.length === 0, 'IR navegó sin destino')
+  check(byText('home_first'), 'IR sin destino no mostró el aviso')
+  byText('Casa').props.click_func()
+  check(shared.destination === 'Casa', 'Casa no se guardó')
+  byText('IR').props.click_func()
+  check(runtime.calls.routes[0] === 'page/destination', 'IR no abrió Destino')
 
-  check(harness.calls.timersCreated.length === 1, 'Viaje debe crear un solo temporizador')
-  const tripTimer = harness.calls.timersCreated[0]
-  check(tripTimer.delay === 4000 && tripTimer.period === 4000,
-    'El temporizador del viaje debe conservar el intervalo de 4 segundos')
+  runtime = createRuntime(shared, predictionApi)
+  runtime.load('destination')
+  byText = (text) => runtime.widgets.find((widget) => widget.props.text === text)
+  check(byText('destination_distance2.4 km'), 'Destino Casa no mostró 2.4 km')
+  byText('destination_change').props.click_func()
+  check(runtime.calls.back === 1, 'CAMBIAR no regresó a Inicio')
 
-  const byText = (text) => harness.widgets.find((widget) => widget.props.text === text)
-  const status = byText('En camino')
-  const distance = byText('3.2 km')
-  const eta = byText('12 min')
-  const finish = byText('Finalizar viaje')
-  const progress = harness.widgets.find((widget) =>
-    widget.type === 'FILL_RECT' && widget.props.y === 207 && widget.props.color === harness.theme.success)
+  runtime = createRuntime(shared, predictionApi)
+  runtime.load('destination')
+  byText = (text) => runtime.widgets.find((widget) => widget.props.text === text)
+  byText('destination_continue').props.click_func()
+  check(runtime.calls.routes[0] === 'page/confirmation', 'SEGUIR no abrió Confirmación')
 
-  for (const [name, widget] of Object.entries({ status, distance, eta, finish, progress })) {
-    check(Boolean(widget), `No se encontró el widget de viaje ${name}`)
-  }
+  runtime = createRuntime(shared, predictionApi)
+  runtime.load('confirmation')
+  byText = (text) => runtime.widgets.find((widget) => widget.props.text === text)
+  const start = byText('confirmation_start')
+  start.props.click_func(); start.props.click_func()
+  check(runtime.calls.routes.filter((route) => route === 'page/trip').length === 1,
+    'INICIAR permitió navegación duplicada')
+  check(shared.tripRunId === 1 && shared.tripActive, 'INICIAR no reinició la sesión')
 
-  tripTimer.callback()
-  check(status.props.text === 'Aviso temprano', 'EARLY_ALERT no actualizó el estado')
-  check(distance.props.text === '1.5 km' && eta.props.text === '5 min',
-    'EARLY_ALERT no actualizó distancia y ETA')
-  check(harness.calls.short === 1 && harness.calls.warning === 0,
-    'EARLY_ALERT no emitió la vibración corta esperada')
+  runtime = createRuntime(shared, predictionApi)
+  const tripPage = runtime.load('trip')
+  byText = (text) => runtime.widgets.find((widget) => widget.props.text === text)
+  const advance = byText('trip_advance')
+  advance.props.click_func()
+  check(byText('state_early'), 'Casa no pasó a EARLY_ALERT')
+  advance.props.click_func()
+  check(byText('state_near'), 'Casa no pasó a NEAR')
+  advance.props.click_func()
+  check(byText('state_arrived'), 'Casa no pasó a ARRIVED')
+  check(runtime.calls.haptics.join(',') === 'EARLY_ALERT,NEAR,ARRIVED',
+    'Vibró más de una vez o con estados incorrectos')
+  advance.props.click_func()
+  check(runtime.calls.haptics.length === 3, 'ARRIVED volvió a vibrar sin transición')
+  byText('trip_finish').props.click_func()
+  check(runtime.calls.routes.includes('page/index') && shared.tripActive === false,
+    'FINALIZAR no volvió a Inicio o dejó el viaje activo')
+  tripPage.onDestroy()
+  const updatesAfterDestroy = runtime.widgets.reduce((sum, widget) => sum + widget.updates, 0)
+  advance.props.click_func()
+  check(runtime.widgets.reduce((sum, widget) => sum + widget.updates, 0) === updatesAfterDestroy,
+    'Un callback actualizó widgets después de onDestroy')
+  check(runtime.calls.destroyHaptics >= 1, 'Viaje no liberó vibración')
 
-  tripTimer.callback()
-  check(status.props.text === 'Cerca de tu parada', 'NEAR no actualizó el estado')
-  check(distance.props.text === '0.3 km' && eta.props.text === '1 min',
-    'NEAR no actualizó distancia y ETA')
-  check(harness.calls.warning === 1 && harness.calls.brightScreen === 1,
-    'NEAR no activó alerta y brillo temporal')
-
-  tripTimer.callback()
-  check(status.props.text === '¡Llegaste a tu parada!', 'ARRIVED no actualizó el estado')
-  check(distance.props.text === '0.0 km' && eta.props.text === '¡Ahora!',
-    'ARRIVED no actualizó distancia y ETA')
-  check(progress.props.w === 152, 'ARRIVED no completó el progreso visual')
-  check(harness.calls.warning === 2 && harness.calls.brightScreen === 2,
-    'ARRIVED no activó la alerta final')
-  check(harness.calls.timersStopped.includes(tripTimer.id),
-    'ARRIVED no detuvo el temporizador')
-  check(finish.props.normal_color === harness.theme.danger &&
-    finish.props.color === harness.theme.onAccent,
-  'ARRIVED no actualizó el botón Finalizar')
-
-  finish.props.click_func()
-  check(harness.calls.routes.includes('page/index'), 'Finalizar no navegó a Inicio')
-  check(harness.calls.clearSession === 1, 'Finalizar no limpió el destino de sesión')
-  page.onDestroy()
-  check(harness.calls.stopVibration === 1 && harness.calls.destroyHaptics === 1,
-    'Viaje no liberó vibración y hápticos al cerrarse')
-
-  const abandoned = createHarness()
-  const abandonedPage = abandoned.getPage()
-  abandonedPage.build()
-  const abandonedTimer = abandoned.calls.timersCreated[0]
-  abandonedPage.onDestroy()
-  check(abandoned.calls.timersStopped.includes(abandonedTimer.id),
-    'Abandonar Viaje no detuvo su temporizador')
-  check(abandoned.calls.clearSession === 1,
-    'Abandonar un viaje incompleto no limpió el destino')
-  check(abandoned.calls.stopVibration === 1 && abandoned.calls.destroyHaptics === 1,
-    'Abandonar Viaje no liberó los recursos hápticos')
+  shared.destination = null
+  runtime = createRuntime(shared, predictionApi)
+  runtime.load('index')
+  byText = (text) => runtime.widgets.find((widget) => widget.props.text === text)
+  byText('Uni').props.click_func(); byText('IR').props.click_func()
+  check(shared.destination === 'Universidad', 'Uni no guardó Universidad')
+  runtime = createRuntime(shared, predictionApi)
+  runtime.load('destination')
+  byText = (text) => runtime.widgets.find((widget) => widget.props.text === text)
+  check(byText('destination_distance4.1 km') && byText('destination_eta20 min'),
+    'Universidad no mostró 4.1 km y 20 min')
 
   return {
-    name: 'Comportamiento del viaje',
-    assertions,
-    detail: 'Cuatro etapas, UI, navegación y limpieza verificadas con runtime simulado'
+    name: 'Flujo completo RideWake', assertions,
+    detail: 'Inicio, Destino, Confirmación, Viaje, regreso, doble toque y ambas rutas validados'
   }
 }
 
 if (require.main === module) {
-  try {
-    const result = run()
-    console.log(`PASS ${result.name}: ${result.assertions} aserciones`)
-  } catch (error) {
-    console.error(`FAIL Comportamiento del viaje: ${error.stack || error.message}`)
-    process.exitCode = 1
-  }
+  run().then((result) => console.log(`PASS ${result.name}: ${result.assertions} aserciones`))
+    .catch((error) => { console.error(error); process.exitCode = 1 })
 }
 
 module.exports = { run }
