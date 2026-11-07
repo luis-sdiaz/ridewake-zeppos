@@ -12,9 +12,7 @@
     "vender": "RideWake",
     "description": "Predictive stop alerts for public transport passengers"
   },
-  "permissions": [
-    "device:os.vibrate"
-  ],
+  "permissions": ["device:os.vibrate"],
   "runtime": {
     "apiVersion": {
       "compatible": "1.0.0",
@@ -36,14 +34,6 @@
         }
       },
       "platforms": [
-        {
-          "name": "amazfit-band-7",
-          "deviceSource": 254
-        },
-        {
-          "name": "xiaomi-smart-band-7-l66",
-          "deviceSource": 260
-        },
         {
           "name": "xiaomi-smart-band-7-international",
           "deviceSource": 263

@@ -66,13 +66,11 @@ function run() {
   const platforms = target.platforms
   check(Array.isArray(platforms), 'band-7 debe declarar platforms')
   const expectedPlatforms = [
-    { name: 'amazfit-band-7', deviceSource: 254 },
-    { name: 'xiaomi-smart-band-7-l66', deviceSource: 260 },
     { name: 'xiaomi-smart-band-7-international', deviceSource: 263 }
   ]
   assertions += 1
   assert.deepStrictEqual(platforms, expectedPlatforms,
-    'Las variantes Band 7 deben conservar exactamente deviceSource 254, 260 y 263')
+    'La compilación debe conservar exclusivamente deviceSource 263')
   check(new Set(platforms.map(({ deviceSource }) => deviceSource)).size === platforms.length,
     'No puede haber deviceSource duplicados en band-7.platforms')
 
@@ -84,7 +82,7 @@ function run() {
   return {
     name: 'Manifiesto Zepp OS',
     assertions,
-    detail: `${pages.length} páginas, variantes 254/260/263, runtime e invariantes validados`
+    detail: `${pages.length} páginas, deviceSource 263, runtime e invariantes validados`
   }
 }
 
