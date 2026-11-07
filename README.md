@@ -1,261 +1,125 @@
-# RideWake Band — Sistema de Alerta Predictiva de Transporte para Wearables
+# RideWake AI
 
-Aplicación nativa para Zepp OS que demuestra un flujo de acompañamiento de viaje con selección de destino, alertas visuales predictivas y retroalimentación háptica en la muñeca.
+Aplicación nativa de demostración para Xiaomi Smart Band 7. RideWake AI simula un recorrido, estima localmente el tiempo restante y genera alertas visuales y hápticas antes del destino.
 
-[![Zepp OS](https://img.shields.io/badge/Zepp%20OS-1.0-111827)](https://docs.zepp.com/docs/1.0/intro/)
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=000)](https://developer.mozilla.org/docs/Web/JavaScript)
-[![Target](https://img.shields.io/badge/Target-Band%207%20%7C%20192%C3%97490-59D9FF)](#ficha-técnica-y-entorno)
-[![License](https://img.shields.io/badge/License-MIT-72E4C1)](#licencia)
-[![Build](https://img.shields.io/badge/Build-Passing-72E4C1)](#verificación-de-compilación)
+El prototipo usa Zepp OS 1.0, QuickJS, Zeus CLI 1.8.2 y una única plataforma con `deviceSource: 263`. No utiliza GPS, Internet, Firebase ni datos reales de transporte.
 
-## Descripción general
+## Pantallas y flujo
 
-En trayectos urbanos, un pasajero puede distraerse, quedarse dormido o perder la referencia de su ubicación y sobrepasar su parada. RideWake Band aborda este problema mediante una experiencia compacta que presenta el progreso del viaje y comunica los hitos relevantes con color y vibración.
+La aplicación registra cinco páginas:
 
-Esta versión es un prototipo funcional para Xiaomi Smart Band 7 y mantiene compatibilidad de desarrollo con el emulador oficial de Amazfit Band 7. Implementa el flujo completo de interfaz y un motor local de simulación; no consume todavía GPS, rutas de transporte ni datos de llegada en tiempo real.
+1. `page/index`: selección Casa o Universidad y acceso a Ajustes.
+2. `page/destination`: ruta, distancia y ETA iniciales de demostración.
+3. `page/confirmation`: confirmación e inicio protegido contra pulsaciones repetidas.
+4. `page/trip`: inferencia, estados del recorrido, alertas y avance manual.
+5. `page/settings`: idioma, vibración e intensidad durante la sesión.
 
-## Ficha técnica y entorno
+El recorrido se avanza manualmente. No se crean temporizadores de simulación. Las pantallas usan fondo negro nativo y widgets `TEXT` y `BUTTON` dentro de 192×349 píxeles.
 
-| Propiedad | Especificación |
-|---|---|
-| Hardware objetivo | Xiaomi Smart Band 7; emulación compatible con Amazfit Band 7 |
-| Pantalla | 192 × 490 px (Xiaomi) / 194 × 368 px (Amazfit) |
-| Interacción | Pantalla táctil capacitiva y motor háptico integrado |
-| Identificador Zepp | `deviceSource: 260` (`l66`) y `263` (`l66w_2`) para Xiaomi / `254` para Amazfit |
-| Target del proyecto | `band-7` |
-| Runtime | Zepp OS 1.0, JavaScript ES6 sobre QuickJS |
-| API declarada | Compatible `1.0.0`, target `1.0.1`, mínima `1.0.0` |
-| CLI de desarrollo | `@zeppos/zeus-cli@1.9.3` |
-| Permiso | `device:os.vibrate` |
-| Versión de la aplicación | `1.0.0` — código `1` |
-| Formato de distribución | Paquete `.zab` |
+## Inteligencia artificial de RideWake AI
 
-## Arquitectura del software
+RideWake AI incorpora una regresión lineal multivariable supervisada, entrenada realmente en el computador y exportada como siete parámetros: un intercepto y seis coeficientes. No es IA generativa ni un modelo preentrenado de terceros.
 
-La aplicación utiliza las primitivas globales de Zepp OS 1.0: `App`, `Page`, `hmUI`, `hmApp`, `hmSensor` y `timer`. No utiliza frameworks de interfaz, TypeScript ni dependencias de ejecución dentro del wearable.
+### Variables de entrada
 
-```text
-ridewake-zeppos/
-├── app.json                    # Manifiesto, runtime, permiso, páginas y target
-├── app.js                      # Ciclo de vida global y registro de diagnóstico
-├── package.json                # Scripts npm y Zeus CLI fijado en 1.9.3
-├── package-lock.json           # Resolución reproducible de herramientas
-├── assets/
-│   └── band-7/
-│       └── icon.png            # Icono de la aplicación para el target
-├── page/
-│   ├── index.js                # Inicio y accesos a viaje y ajustes
-│   ├── destination.js          # Selección exclusiva de destino
-│   ├── confirmation.js         # Resumen previo e inicio del trayecto
-│   ├── trip.js                 # Telemetría simulada y máquina de estados
-│   └── settings.js             # Idioma, intensidad háptica e información
-└── utils/
-    ├── theme.js                # Colores, tipografía y geometría segura
-    ├── session.js              # Destino, tema y modo háptico compartidos
-    ├── i18n.js                 # Diccionario ES/EN y fallback a español
-    └── haptics.js              # Sensor VIBRATE y duración de pulsos
+La inferencia usa información disponible en el instante de la predicción:
+
+- ETA convencional derivada de distancia y velocidad suavizada.
+- Distancia restante en kilómetros.
+- Progreso del recorrido entre 0 y 1.
+- Variabilidad reciente de velocidad.
+- Demora simulada conocida en el punto actual.
+- Interacción entre ETA convencional y variabilidad.
+
+El tiempo real restante y los datos futuros no se usan como entrada.
+
+### Datos y entrenamiento reproducible
+
+`scripts/train-ai.js` genera escenarios sintéticos urbanos con variaciones de velocidad, congestión, paradas y demoras. Los datos son exclusivamente sintéticos y no representan mediciones reales de Pasto ni de una empresa de transporte.
+
+El generador usa la semilla fija `20261107`. Se producen 160 escenarios con diez observaciones cada uno. La división se realiza por escenarios completos:
+
+- Entrenamiento: 120 escenarios y 1.200 ejemplos.
+- Evaluación: 40 escenarios no vistos y 400 ejemplos.
+
+Ninguna observación de un mismo escenario aparece en ambos conjuntos. La normalización se calcula únicamente con entrenamiento. Los coeficientes se ajustan resolviendo regresión lineal con una regularización numérica mínima en la matriz.
+
+Para reproducir el entrenamiento:
+
+```powershell
+npm run train:ai
 ```
 
-### Responsabilidades transversales
+El comando genera `utils/mlModel.js`. Con la semilla y el conjunto actuales, la evaluación medida es:
 
-- `utils/theme.js` evita valores de color dispersos y define las medidas base del dispositivo.
-- `utils/session.js` comparte el destino y la intensidad háptica mediante `getApp()._options.globalData`.
-- `utils/i18n.js` conserva el idioma activo en el mismo estado global y resuelve cada clave con fallback a español.
-- `utils/haptics.js` mantiene una única instancia de `hmSensor.id.VIBRATE`, detiene cualquier pulso previo antes de iniciar otro y libera sus temporizadores al destruir la página.
-- `app.js` registra `onCreate` y `onDestroy` y emite trazas con `DeviceRuntimeCore.HmLogger`.
-
-El estado global es deliberadamente temporal: permanece mientras la Mini App está activa, pero no constituye persistencia después de cerrar la aplicación o reiniciar el dispositivo.
-
-## Flujo de navegación y estados
-
-### Navegación
-
-| Pantalla origen | Acción del usuario | Pantalla o resultado | Retroalimentación física |
-|---|---|---|---|
-| Inicio | Pulsar **Iniciar viaje** | Selección de destino | Pulso corto |
-| Inicio | Pulsar **Ajustes** | Configuración | Pulso corto |
-| Destino | Elegir **Casa** o **Universidad** | Selección exclusiva y activación de Continuar | Pulso corto |
-| Destino | Pulsar **Continuar** | Confirmación | Pulso corto |
-| Destino | Pulsar **Volver** | Inicio | Pulso corto |
-| Confirmación | Pulsar **Comenzar viaje** | Viaje activo | Pulso corto |
-| Confirmación | Pulsar **Cambiar destino** | Selección de destino | Pulso corto |
-| Viaje activo | Transición a aviso temprano | Actualización de estado y métricas | Pulso corto |
-| Viaje activo | Transición a cerca/llegada | Alerta visual crítica | Pulso de advertencia |
-| Viaje activo | Pulsar **Finalizar viaje** | Limpieza del destino y regreso a Inicio | Pulso corto |
-| Ajustes | Alternar idioma | Actualización inmediata de todos los textos | Pulso corto |
-| Ajustes | Elegir tema claro u oscuro | Recoloración inmediata de la pantalla | Pulso corto |
-| Ajustes | Elegir intensidad | Actualización del toggle y prueba háptica | Pulso con la nueva duración |
-| Ajustes | Pulsar **Volver** | Inicio | Pulso corto |
-
-### Máquina de estados del viaje
-
-`page/trip.js` inicia un temporizador periódico de 4 segundos. Cada ciclo avanza una posición en `STAGES`, actualiza los widgets existentes sin reconstruir la pantalla y aplica la respuesta háptica correspondiente.
-
-| Estado lógico | Distancia | ETA | Superficie/acento | Háptica |
-|---|---:|---:|---|---|
-| `MONITORING` | 3.2 km | 12 min | Navy900 / Mint400 | Sin alerta automática |
-| `EARLY_ALERT` | 1.5 km | 5 min | Navy700 / Amber400 | Pulso corto |
-| `NEAR` | 0.3 km | 1 min | Coral400 / Amber400 | Advertencia |
-| `ARRIVED` | 0.0 km | ¡Ahora! | Coral400 / White | Advertencia |
-
-Al llegar, el temporizador se detiene. La función compartida `stopSimulation()` también se ejecuta al finalizar manualmente y en `onDestroy`, lo que previene procesos periódicos huérfanos y consumo innecesario de batería.
-
-## Sistema de diseño
-
-La aplicación inicia en modo claro. El usuario puede cambiar entre claro y oscuro desde Ajustes; la selección se aplica inmediatamente a todas las pantallas durante la sesión activa.
-
-### Tokens de color
-
-| Token | Valor Zepp OS | Hexadecimal | Rol funcional |
-|---|---:|---:|---|
-| `Cyan500` | `0x59D9FF` | `#59D9FF` | Marca, encabezados y ETA |
-| `Mint400` | `0x72E4C1` | `#72E4C1` | Monitoreo, éxito, selección y confirmación |
-| `Amber400` | `0xFFC857` | `#FFC857` | Aviso temprano y precaución |
-| `Coral400` | `0xFF6B6B` | `#FF6B6B` | Parada cercana y llegada crítica |
-| `Navy950` | `0x0A1118` | `#0A1118` | Fondo AMOLED principal |
-| `Navy900` | `0x111C26` | `#111C26` | Tarjetas y superficies elevadas |
-| `Navy700` | `0x1B2A38` | `#1B2A38` | Controles secundarios y selección inactiva |
-| `White` | `0xFFFFFF` | `#FFFFFF` | Texto de alta prioridad |
-| `Slate300` | `0xB6C4CA` | `#B6C4CA` | Texto secundario claro |
-| `Slate350` | `0x8FA3B8` | `#8FA3B8` | Etiquetas y descripciones |
-| `Slate500` | `0x506578` | `#506578` | Texto auxiliar |
-| `Ink` | `0x001018` | `#001018` | Texto oscuro sobre superficies claras |
-| `DisabledSurface` | `0x16262D` | `#16262D` | Fondo de controles deshabilitados |
-| `DisabledContent` | `0x60737C` | `#60737C` | Contenido deshabilitado |
-
-### Tipografía y layout
-
-| Token | Valor |
+| Estimador | MAE en escenarios no vistos |
 |---|---:|
-| `Type.brand` | 18 px |
-| `Type.headline` | 22 px |
-| `Type.body` | 14 px |
-| `Type.button` | 16 px |
-| `Type.caption` | 12 px |
-| `Layout.width` | 192 px |
-| `Layout.height` | 490 px |
-| `Layout.leftMargin` | 20 px |
-| `Layout.contentWidth` | 152 px |
-| `Layout.innerMargin` | 28 px |
-| `Layout.innerWidth` | 136 px |
+| Regresión multivariable | 0.1525 min |
+| Referencia distancia/velocidad | 2.2122 min |
 
-La interfaz reserva 20 px a cada lado y 28 px en los bloques internos para respetar la silueta tipo cápsula. Los controles principales usan un ancho máximo de 152 px, tarjetas de 20 px de radio y botones tipo píldora. Posiciones y alturas se compactan automáticamente con `hmSetting.getDeviceInfo()` cuando la pantalla es más baja que los 490 px del diseño base, incluida la variante compatible de 368 px.
+Estas métricas proceden de los datos sintéticos de evaluación; no miden precisión en transporte real.
 
-## Internacionalización y accesibilidad
+### Inferencia en el reloj
 
-La función `t(key)` consulta un diccionario bilingüe español/inglés. El idioma predeterminado es español y, si una clave no existe en el idioma activo, el sistema intenta resolverla en español antes de mostrar el identificador de la clave.
+`utils/prediction.js` importa los parámetros de `utils/mlModel.js`, normaliza las seis características y ejecuta una suma ponderada determinista compatible con QuickJS. No requiere bibliotecas de Machine Learning durante la ejecución.
 
-La pantalla de ajustes permite alternar el idioma y actualizar sus textos inmediatamente mediante `setProperty()`, sin depender de una recarga de página. El valor se comparte con el resto de páginas durante la sesión de la Mini App.
+Cada pulsación de AVANZAR incorpora una nueva velocidad observada, actualiza el suavizado exponencial, calcula la variabilidad reciente y solicita una ETA al modelo. Si una entrada o un parámetro no es finito, la aplicación utiliza `distancia / velocidad` como respaldo. Los resultados se limitan a valores finitos y no negativos.
 
-La comunicación de alertas no depende únicamente del color: cada hito muestra texto, distancia y ETA, y los estados importantes incorporan respuesta háptica. Existen dos perfiles:
+La ETA inferida y la distancia alimentan la máquina de estados sin permitir regresiones:
 
-| Perfil | Interacción corta | Alerta de parada |
-|---|---:|---:|
-| Normal | 90 ms | 400 ms |
-| Intensa | 180 ms | 650 ms |
+- `MONITORING`: recorrido normal.
+- `EARLY_ALERT`: ETA ≤ 6 minutos o distancia ≤ 1.2 km.
+- `NEAR`: ETA ≤ 2 minutos o distancia ≤ 0.35 km.
+- `ARRIVED`: distancia ≤ 0.05 km.
 
-## Ciclo de vida y gestión de recursos
+Las transiciones a `EARLY_ALERT`, `NEAR` y `ARRIVED` activan como máximo una vibración. Las escenas son 23/24 para aviso anticipado y 25 para proximidad o llegada. Si la vibración está desactivada o el sensor no existe, la alerta visual continúa funcionando.
 
-- Cada página inicializa la háptica mediante `initHaptics()` y ejecuta `destroyHaptics()` en `onDestroy`.
-- Los pulsos usan `timer.createTimer` para detener el motor después de la duración seleccionada.
-- Antes de crear un nuevo pulso se cancela el temporizador háptico anterior.
-- `page/trip.js` conserva el identificador del temporizador de simulación y lo cancela en todas las rutas de salida.
-- Finalizar el viaje ejecuta `clearSession()`, que elimina el destino activo sin restablecer la preferencia háptica.
+## Estado y ciclo de vida
 
-## Instalación, compilación y despliegue
+`getApp()._options.globalData` conserva durante la sesión el destino, idioma, activación de vibración, intensidad y estado del viaje. No se usa almacenamiento físico.
 
-### Requisitos previos
+Viaje crea el sensor `VIBRATE` únicamente al producirse una alerta. Antes de iniciar una escena llama a `stop()`. Al finalizar o destruir la página detiene el sensor, elimina su referencia y anula las referencias a widgets y predicción. No existen timers de viaje ni de vibración.
 
-- Node.js 24.14.0, versión utilizada en la verificación final.
-- npm.
-- Zeus CLI 1.9.3, fijado como dependencia local del proyecto.
-- Zepp App con modo desarrollador para la instalación mediante QR.
+## Desarrollo y validación
 
-### Instalación de dependencias
+Instalar dependencias:
 
-El repositorio declara Zeus CLI como dependencia local reproducible:
-
-```bash
+```powershell
 npm install
 ```
 
-También puede instalarse globalmente la misma versión:
+Entrenar y exportar el modelo:
 
-```bash
-npm install -g @zeppos/zeus-cli@1.9.3
+```powershell
+npm run train:ai
 ```
 
-### Compilación
+Ejecutar pruebas:
 
-Con la dependencia local:
+```powershell
+npm test
+```
 
-```bash
+Compilar para el único target `band-7`:
+
+```powershell
 npm run build
 ```
 
-O con la instalación global:
+Generar posteriormente el QR, cuando se quiera probar físicamente:
 
-```bash
-zeus build
-```
-
-El instalador resultante se escribe en `dist/` con extensión `.zab`.
-
-### Previsualización e instalación en dispositivo
-
-```bash
+```powershell
 npm run preview
 ```
 
-O bien:
+## Limitaciones
 
-```bash
-zeus preview
-```
+- Los recorridos, velocidades, congestión y demoras son simulados.
+- El MAE documentado corresponde a escenarios sintéticos, no a viajes reales.
+- El modelo no aprende continuamente en la pulsera.
+- No existe GPS, conectividad con transporte público ni servidor remoto.
+- Las preferencias duran únicamente durante la sesión activa.
+- La navegación, inferencia y vibraciones requieren validación final en la Xiaomi Smart Band 7 física.
+- La pantalla amarilla intermitente observada anteriormente no tiene una causa confirmada y no se considera resuelta.
 
-`zeus preview` genera el código QR de previsualización. Para instalarlo en hardware:
-
-1. Vincular la Xiaomi Smart Band 7 con la aplicación oficial Zepp y mantener Bluetooth activo.
-2. Iniciar sesión en Zepp App y, si Zeus solicita autenticación, utilizar la misma cuenta en las herramientas de desarrollo.
-3. En Zepp App abrir **Perfil → Ajustes → Acerca de** y pulsar siete veces el logotipo de Zepp hasta activar el modo desarrollador.
-4. Volver a **Perfil**, abrir la pulsera vinculada, desplazarse al final y entrar en **Modo desarrollador**.
-5. En Windows, desde la raíz del proyecto, ejecutar `npm run preview`.
-6. Esperar a que la terminal muestre `Please use Zepp APP...`, el QR y su fecha de vencimiento.
-7. En el modo desarrollador de Zepp App, abrir **Scan/Escanear**, leer el QR y confirmar la instalación.
-8. Abrir RideWake AI desde la lista de aplicaciones de la pulsera y comprobar Inicio, Ajustes, un recorrido completo y las vibraciones.
-
-La generación del QR no confirma que el paquete haya sido instalado ni ejecutado en la Xiaomi Smart Band 7 física. Si Zeus muestra `[undefined] RideWake AI-1.0.0`, debe registrarse como advertencia de identificación del catálogo local para `deviceSource: 260`; no demuestra por sí sola compatibilidad ni incompatibilidad.
-
-## Verificación de compilación
-
-La verificación final local finalizó correctamente:
-
-```text
-TEST: 9/9 suites, 795 aserciones
-BUILD_EXIT=0
-ROLLUP: 6 archivos
-QJSC: 6 archivos
-PREVIEW_EXIT=0, QR generado
-```
-
-Zeus 1.9.3 compila el target `band-7` con las plataformas declaradas `254`, `260` y `263`, redimensiona el icono, compila los seis bundles QuickJS y genera `dist/1000000-RideWake_AI-1.0.0-20261106025026.zab`. `zeus preview` también completa la generación del QR. El encabezado del QR muestra actualmente `[undefined] RideWake AI-1.0.0`; por ello, la instalación en una Xiaomi Smart Band 7 física con `deviceSource: 260` sigue pendiente de validación en hardware.
-
-## Alcance y trabajo pendiente
-
-- Sustituir la máquina de estados simulada por ubicación y estimaciones reales.
-- Definir un `appId` de producción; el manifiesto utiliza actualmente `1000000` como identificador provisional.
-- Validar en hardware la intensidad de ambos perfiles hápticos y la legibilidad en movimiento.
-- Validar instalación por QR con la versión de Zepp App utilizada para vincular la Xiaomi Smart Band 7.
-- Confirmar en la Xiaomi Smart Band 7 física del propietario que `deviceSource: 260` acepta el paquete y que la geometría, navegación y vibración funcionan como se espera.
-- Ejecutar las nueve suites automatizadas dentro de CI cuando se incorpore un entorno de integración.
-
-## Gobernanza y créditos
-
-Desarrollado por **Luis Sebastián Díaz**.
-
-**Universidad Cooperativa de Colombia — UCC Pasto**  
-Ingeniería de Software
-
-## Licencia
-
-Este proyecto se distribuye bajo la licencia MIT.
+Desarrollado por Luis Sebastián Díaz — Universidad Cooperativa de Colombia, UCC Pasto.
