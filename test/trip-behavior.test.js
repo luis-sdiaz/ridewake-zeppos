@@ -22,7 +22,7 @@ function createRuntime(shared, predictionApi) {
   const calls = { routes: [], back: 0, haptics: [], destroyHaptics: 0 }
   let page
   const hmUI = {
-    widget: { TEXT: 'TEXT', BUTTON: 'BUTTON' },
+    widget: { TEXT: 'TEXT', BUTTON: 'BUTTON', FILL_RECT: 'FILL_RECT' },
     prop: { MORE: 'MORE', TEXT: 'TEXT' },
     align: { CENTER_H: 1, CENTER_V: 2 },
     text_style: { NONE: 0, WRAP: 1 },
@@ -47,12 +47,17 @@ function createRuntime(shared, predictionApi) {
     t: (key) => key,
     getLanguage: () => shared.language,
     getSelectedDestination: () => shared.destination,
+    getCustomDestination: () => null,
+    clearCustomDestination() {},
+    getTheme: () => 'dark',
     setSelectedDestination(value) { shared.destination = value; return value },
     getRouteSummary: predictionApi.getRouteSummary,
     createPrediction: predictionApi.createPrediction,
     advancePrediction: predictionApi.advancePrediction,
     formatDistance: predictionApi.formatDistance,
     formatEta: predictionApi.formatEta,
+    getActiveTheme: () => ({ bg: 0, title: 1, textPrimary: 2, textSecondary: 3, btnSecondary: 4, btnSecondaryPress: 5, btnSecondaryText: 6, accent: 7, accentPress: 8, onAccent: 9, alertNear: 10, alertEarly: 11 }),
+    createPageBackground: () => null,
     startTripSession() { shared.tripRunId += 1; shared.tripActive = true; return shared.tripRunId },
     finishTripSession() { shared.tripActive = false },
     vibrateForState(state) { calls.haptics.push(state); return true },

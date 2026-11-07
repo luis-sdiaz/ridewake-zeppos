@@ -21,6 +21,7 @@ async function run() {
   try {
     const globalData = {
       selectedDestination: null,
+      customDestination: null,
       language: 'es',
       vibrationEnabled: true,
       vibrationIntensity: 'normal',
@@ -41,6 +42,9 @@ async function run() {
     check(session.getLanguage() === 'en', 'No conservó inglés')
     check(!session.isVibrationEnabled(), 'No conservó vibración desactivada')
     check(session.getVibrationIntensity() === 'strong', 'No conservó intensidad fuerte')
+    session.setCustomDestination('  Centro Comercial  ')
+    check(session.getCustomDestination() === 'Centro Comercial',
+      'No conservó el destino personalizado')
 
     const firstRun = session.startTripSession()
     const secondRun = session.startTripSession()

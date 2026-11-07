@@ -1,8 +1,10 @@
 const fallbackState = {
   selectedDestination: null,
+  customDestination: null,
   language: 'es',
   vibrationEnabled: true,
   vibrationIntensity: 'normal',
+  theme: 'dark',
   tripRunId: 0,
   tripActive: false
 }
@@ -38,6 +40,21 @@ export function getSelectedDestination() {
   return normalizeDestination(getGlobalState().selectedDestination)
 }
 
+export function setCustomDestination(value) {
+  const text = String(value || '').trim().slice(0, 20)
+  getGlobalState().customDestination = text || null
+  return getGlobalState().customDestination
+}
+
+export function getCustomDestination() {
+  const value = getGlobalState().customDestination
+  return typeof value === 'string' && value.trim() ? value : null
+}
+
+export function clearCustomDestination() {
+  getGlobalState().customDestination = null
+}
+
 export function setLanguage(value) {
   if (value === 'es' || value === 'en') getGlobalState().language = value
 }
@@ -62,6 +79,15 @@ export function setVibrationIntensity(value) {
 
 export function getVibrationIntensity() {
   return getGlobalState().vibrationIntensity === 'strong' ? 'strong' : 'normal'
+}
+
+export function setTheme(value) {
+  getGlobalState().theme = value === 'light' ? 'light' : 'dark'
+  return getGlobalState().theme
+}
+
+export function getTheme() {
+  return getGlobalState().theme === 'light' ? 'light' : 'dark'
 }
 
 export function startTripSession() {

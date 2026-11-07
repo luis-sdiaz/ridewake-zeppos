@@ -29,7 +29,8 @@
             "page/destination",
             "page/confirmation",
             "page/trip",
-            "page/settings"
+            "page/settings",
+            "page/keyboard"
           ]
         }
       },

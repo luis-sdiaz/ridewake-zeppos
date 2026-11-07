@@ -48,14 +48,15 @@ function run() {
 
   const pages = target.module && target.module.page && target.module.page.pages
   check(Array.isArray(pages), 'band-7 debe declarar module.page.pages')
-  check(pages.length === 5, `Se esperaban 5 páginas y se encontraron ${pages.length}`)
+  check(pages.length === 6, `Se esperaban 6 páginas y se encontraron ${pages.length}`)
 
   const expectedPages = [
     'page/index',
     'page/destination',
     'page/confirmation',
     'page/trip',
-    'page/settings'
+    'page/settings',
+    'page/keyboard'
   ].sort()
   assertions += 1
   assert.deepStrictEqual([...pages].sort(), expectedPages, 'Las rutas registradas no coinciden')

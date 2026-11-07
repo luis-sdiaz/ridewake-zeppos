@@ -10,16 +10,16 @@ function stripImports(source) {
 }
 
 function createHarness() {
-  const state = { language: 'es', enabled: true, intensity: 'normal' }
+  const state = { language: 'es', enabled: true, intensity: 'normal', theme: 'dark' }
   const calls = { back: 0 }
   const widgets = []
   let page
   const dictionaries = {
-    es: { settings_title: 'AJUSTES', settings_language: 'Idioma', settings_vibration: 'Vibración', settings_intensity: 'Intensidad', settings_on: 'SÍ', settings_off: 'NO', settings_normal: 'Normal', settings_strong: 'Fuerte', settings_about: 'Acerca', settings_back: 'VOLVER', settings_summary_on: 'Vibración activa', settings_summary_off: 'Vibración desactivada' },
-    en: { settings_title: 'SETTINGS', settings_language: 'Language', settings_vibration: 'Vibration', settings_intensity: 'Intensity', settings_on: 'ON', settings_off: 'OFF', settings_normal: 'Normal', settings_strong: 'Strong', settings_about: 'About', settings_back: 'BACK', settings_summary_on: 'Vibration enabled', settings_summary_off: 'Vibration disabled' }
+    es: { settings_title: 'AJUSTES', settings_language: 'Idioma', settings_vibration: 'Vibración', settings_appearance: 'Apariencia', settings_light: 'Claro', settings_dark: 'Oscuro', settings_on: 'SÍ', settings_off: 'NO', settings_about: 'Acerca', settings_back: 'VOLVER', settings_summary_on: 'Vibración activa', settings_summary_off: 'Vibración desactivada' },
+    en: { settings_title: 'SETTINGS', settings_language: 'Language', settings_vibration: 'Vibration', settings_appearance: 'Appearance', settings_light: 'Light', settings_dark: 'Dark', settings_on: 'ON', settings_off: 'OFF', settings_about: 'About', settings_back: 'BACK', settings_summary_on: 'Vibration enabled', settings_summary_off: 'Vibration disabled' }
   }
   const hmUI = {
-    widget: { TEXT: 'TEXT', BUTTON: 'BUTTON' }, prop: { MORE: 'MORE', TEXT: 'TEXT' },
+    widget: { TEXT: 'TEXT', BUTTON: 'BUTTON', FILL_RECT: 'FILL_RECT' }, prop: { MORE: 'MORE', TEXT: 'TEXT' },
     align: { CENTER_H: 1, CENTER_V: 2 }, text_style: { NONE: 0 },
     createWidget(type, props) {
       const widget = { type, props: Object.assign({}, props), setProperty(property, value) {
@@ -39,6 +39,11 @@ function createHarness() {
     setVibrationEnabled: (value) => { state.enabled = value },
     getVibrationIntensity: () => state.intensity,
     setVibrationIntensity: (value) => { state.intensity = value },
+    getTheme: () => state.theme,
+    setTheme: (value) => { state.theme = value },
+    getActiveTheme: () => ({ bg: 0, title: 1, textPrimary: 2, textSecondary: 3, btnSecondary: 4, btnSecondaryPress: 5, btnSecondaryText: 6, accent: 7, accentPress: 8, onAccent: 9 }),
+    createPageBackground: () => null,
+    updatePageBackground() {},
     layoutValue: (compactValue, expandedValue) => expandedValue
   }
   vm.runInNewContext(stripImports(fs.readFileSync(settingsPath, 'utf8')), context)
@@ -52,6 +57,9 @@ function run() {
   const page = harness.getPage()
   page.build()
   const byText = (text) => harness.widgets.find((widget) => widget.props.text === text)
+  check(!byText('Normal') && !byText('Strong') && !byText('Fuerte') &&
+    !byText('Intensidad') && !byText('Intensity'),
+  'La sección Intensidad no debe mostrarse')
 
   byText('EN').props.click_func()
   check(harness.state.language === 'en', 'EN no cambió el idioma')
@@ -59,11 +67,15 @@ function run() {
   byText('OFF').props.click_func()
   check(harness.state.enabled === false, 'OFF no desactivó vibración')
   check(Boolean(byText('Vibration disabled')), 'No mostró vibración desactivada')
-  byText('Strong').props.click_func()
-  check(harness.state.intensity === 'strong', 'Strong no seleccionó intensidad fuerte')
+  byText('Light').props.click_func()
+  check(harness.state.theme === 'light' && byText('Light').props.color === 9,
+    'Light no seleccionó o resaltó el tema claro')
+  byText('Dark').props.click_func()
+  check(harness.state.theme === 'dark' && byText('Dark').props.color === 9,
+    'Dark no seleccionó o resaltó el tema oscuro')
   byText('ES').props.click_func()
   check(harness.state.language === 'es' && harness.state.enabled === false &&
-    harness.state.intensity === 'strong', 'El idioma reinició preferencias')
+    harness.state.intensity === 'normal', 'El idioma reinició preferencias')
   byText('VOLVER').props.click_func()
   check(harness.calls.back === 1, 'VOLVER no llamó goBack')
   page.onDestroy()
@@ -71,7 +83,7 @@ function run() {
 
   return {
     name: 'Ajustes de sesión', assertions,
-    detail: 'Idioma, vibración, intensidad, actualización visual y retorno verificados'
+    detail: 'Idioma, vibración, apariencia, actualización visual y retorno verificados'
   }
 }
 

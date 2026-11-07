@@ -5,6 +5,7 @@ const suites = [
   "./theme.test.js",
   "./session.test.js",
   "./settings-behavior.test.js",
+  "./keyboard-behavior.test.js",
   "./manifest.test.js",
   "./screen-bounds.test.js",
   "./routeSimulator.test.js",

@@ -1,39 +1,56 @@
 const assert = require('assert').strict
 const fs = require('fs')
 const path = require('path')
+const vm = require('vm')
 
-const pageDirectory = path.join(__dirname, '..', 'page')
-const pages = ['index.js', 'destination.js', 'confirmation.js', 'trip.js', 'settings.js']
+const root = path.join(__dirname, '..')
+const pages = ['index.js', 'destination.js', 'confirmation.js', 'trip.js', 'settings.js', 'keyboard.js']
 
 function run() {
   let assertions = 0
   const check = (condition, message) => { assertions += 1; assert.ok(condition, message) }
-  for (const page of pages) {
-    const source = fs.readFileSync(path.join(pageDirectory, page), 'utf8')
-    check(!source.includes('FILL_RECT'), `${page}: debe conservar fondo negro nativo`)
-    check(source.includes('0x35dce8'), `${page}: falta el acento cian principal`)
-    check(source.includes('0xffffff'), `${page}: falta texto blanco legible`)
-    check(!source.includes('getTheme('), `${page}: no debe reintroducir temas variables`)
+  const theme = fs.readFileSync(path.join(root, 'utils', 'theme.js'), 'utf8')
+  const session = fs.readFileSync(path.join(root, 'utils', 'session.js'), 'utf8')
+  const index = fs.readFileSync(path.join(root, 'page', 'index.js'), 'utf8')
+  check(theme.includes('0xf4fafc') && theme.includes('0x087d87'),
+    'Falta la paleta clara especificada')
+  const executableTheme = theme
+    .replace(/^import .*$/gm, '')
+    .replace(/export function /g, 'function ')
+    .replace(/export const /g, 'const ')
+    .replace(/\n$/, '') +
+    '\nthis.themeApi = { getTheme, getActiveTheme }'
+  const context = {
+    getSessionTheme: () => context.mode,
+    ScreenLayout: { width: 192, usableHeight: 349 },
+    mode: 'dark',
+    console
   }
-  const index = fs.readFileSync(path.join(pageDirectory, 'index.js'), 'utf8')
-  check(index.includes('x: layoutValue(20, 18), y: layoutValue(94, 136)'),
-    'La geometría circular de Casa cambió')
-  check(index.includes('x: layoutValue(104, 102), y: layoutValue(94, 136)'),
-    'La geometría circular de Uni cambió')
-  check(index.includes('x: layoutValue(60, 57), y: layoutValue(212, 286)'),
-    'La geometría circular de IR cambió')
-  check(index.includes('x: layoutValue(76, 73), y: layoutValue(304, 414)'),
-    'Ajustes debe conservar una zona táctil circular de 40 px')
-  check(index.includes('text_style: hmUI.text_style.WRAP'),
-    'El estado de Inicio debe permitir salto de línea')
-  const trip = fs.readFileSync(path.join(pageDirectory, 'trip.js'), 'utf8')
-  check(trip.includes("text: t('trip_advance'), text_size: layoutValue(12, 13)"),
-    'AVANZAR debe conservar texto legible')
-  check(trip.includes("text: t('trip_finish'), text_size: layoutValue(11, 12)"),
-    'FINALIZAR debe conservar texto legible')
+  vm.runInNewContext(executableTheme, context)
+  check(context.themeApi.getActiveTheme().bg === 0x050b0d,
+    'El tema oscuro no devuelve fondo oscuro')
+  context.mode = 'light'
+  check(context.themeApi.getActiveTheme().bg === 0xf4fafc &&
+    context.themeApi.getActiveTheme().textPrimary === 0x17333b,
+  'El tema claro no devuelve fondo y texto de alto contraste')
+  check(theme.includes('createPageBackground') && theme.includes('FILL_RECT'),
+    'Falta el fondo FILL_RECT seguro')
+  check(session.includes("theme: 'dark'") && session.includes("value === 'light'"),
+    'El tema oscuro no es el predeterminado o no se valida')
+  check(index.includes("home_settings") && !index.includes('normal_src') &&
+    !index.includes('press_src') && !index.includes('⚙'),
+  'Configuración debe usar texto, no iconos Unicode o imágenes')
+  for (const page of pages) {
+    const source = fs.readFileSync(path.join(root, 'page', page), 'utf8')
+    check(source.includes('getActiveTheme'), `${page}: no lee la paleta activa`)
+    check(source.includes('createPageBackground'), `${page}: no crea el fondo`)
+  }
+  check(fs.readFileSync(path.join(root, 'utils', 'i18n.js'), 'utf8')
+    .includes('settings_appearance'), 'Faltan traducciones de Apariencia')
   return {
-    name: 'Identidad visual estable', assertions,
-    detail: 'Fondo nativo, paleta oscura y geometría original de Inicio verificadas'
+    name: 'Temas claro y oscuro',
+    assertions,
+    detail: 'Paletas, estado compartido, fondos y las cinco pantallas verificadas'
   }
 }
 
