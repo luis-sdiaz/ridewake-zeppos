@@ -1,388 +1,210 @@
-import { getTheme, Layout, Type } from '../utils/theme'
-import { t } from '../utils/i18n'
-import { getRouteSteps } from '../utils/routeSimulator'
-import { clearSession, getSelectedDestination, getThemeMode } from '../utils/session'
+import { getLanguage, t } from '../utils/i18n'
+import { finishTripSession, getSelectedDestination } from '../utils/session'
 import {
-  destroyHaptics,
-  initHaptics,
-  stopVibration,
-  vibrateShort,
-  vibrateWarning
-} from '../utils/haptics'
+  advancePrediction,
+  createPrediction,
+  formatDistance,
+  formatEta
+} from '../utils/prediction'
+import { destroyHaptics, vibrateForState } from '../utils/haptics'
+import { layoutValue } from '../utils/layout'
 
-let activeTheme = getTheme('light')
+let pageAlive = false
+let navigationLocked = false
+let prediction = null
+let lastAlertedState = 'MONITORING'
+let statusWidget = null
+let distanceWidget = null
+let etaWidget = null
+let referenceWidget = null
+let reasonWidget = null
+let confidenceWidget = null
 
-function getStageStyles() {
-  return {
-    MONITORING: {
-      statusKey: 'trip_status_monitoring',
-      cardColor: activeTheme.cardBg,
-      accentColor: activeTheme.success,
-      textColor: activeTheme.success,
-      progressColor: activeTheme.success,
-      haptic: null
-    },
-    EARLY_ALERT: {
-      statusKey: 'trip_status_early',
-      cardColor: activeTheme.btnSecondary,
-      accentColor: activeTheme.warning,
-      textColor: activeTheme.warning,
-      progressColor: activeTheme.warning,
-      haptic: 'short'
-    },
-    NEAR: {
-      statusKey: 'trip_status_near',
-      cardColor: activeTheme.btnSecondary,
-      accentColor: activeTheme.danger,
-      textColor: activeTheme.danger,
-      progressColor: activeTheme.danger,
-      haptic: 'warning'
-    },
-    ARRIVED: {
-      statusKey: 'trip_status_arrived',
-      cardColor: activeTheme.danger,
-      accentColor: activeTheme.textPrimary,
-      textColor: activeTheme.onAccent,
-      progressColor: activeTheme.danger,
-      haptic: 'warning'
-    }
-  }
+function stateText(state) {
+  if (state === 'ARRIVED') return t('state_arrived')
+  if (state === 'NEAR') return t('state_near')
+  if (state === 'EARLY_ALERT') return t('state_early')
+  return t('state_monitoring')
 }
 
-let timerId = null
-let stageIndex = 0
-let journeyCompleted = false
-let routeSteps = []
-let alertCard = null
-let alertAccent = null
-let statusText = null
-let progressIndicator = null
-let nextStopText = null
-let distanceText = null
-let etaText = null
-let finishButton = null
-
-function stopSimulation() {
-  if (timerId !== null) {
-    try {
-      timer.stopTimer(timerId)
-    } catch (error) {
-      console.log('Unable to stop trip timer')
-    }
-    timerId = null
-  }
+function reasonText(state) {
+  if (state === 'ARRIVED') return t('reason_arrived')
+  if (state === 'NEAR') return t('reason_near')
+  if (state === 'EARLY_ALERT') return t('reason_early')
+  return t('reason_monitoring')
 }
 
-function keepScreenAwakeForAlert() {
+function stateColor(state) {
+  if (state === 'ARRIVED' || state === 'NEAR') return 0xff6b6b
+  if (state === 'EARLY_ALERT') return 0xffc857
+  return 0x72edf2
+}
+
+function setText(widget, text) {
+  if (!pageAlive || !widget || typeof widget.setProperty !== 'function' ||
+      typeof hmUI === 'undefined' || !hmUI.prop) return
   try {
-    if (typeof hmSetting !== 'undefined' && hmSetting.setBrightScreen) {
-      hmSetting.setBrightScreen(30)
+    if (hmUI.prop.TEXT !== undefined) widget.setProperty(hmUI.prop.TEXT, text)
+    else if (hmUI.prop.MORE !== undefined) widget.setProperty(hmUI.prop.MORE, { text: text })
+  } catch (error) {
+    console.log('RideWake Viaje: text update failed')
+  }
+}
+
+function renderPrediction() {
+  if (!pageAlive || !prediction) return
+  try {
+    if (statusWidget && typeof statusWidget.setProperty === 'function' &&
+        hmUI.prop && hmUI.prop.MORE !== undefined) {
+      statusWidget.setProperty(hmUI.prop.MORE, {
+        text: stateText(prediction.state),
+        color: stateColor(prediction.state)
+      })
     }
   } catch (error) {
-    console.log('Bright screen control unavailable')
+    console.log('RideWake Viaje: state update failed')
+  }
+  setText(distanceWidget, t('trip_distance') + formatDistance(prediction.remainingDistance))
+  setText(etaWidget, t('trip_eta') + formatEta(prediction.etaMinutes))
+  setText(referenceWidget, t('trip_next') +
+    (getLanguage() === 'en' ? prediction.referenceEn : prediction.referenceEs))
+  setText(reasonWidget, reasonText(prediction.state))
+  setText(confidenceWidget, t('trip_confidence') + prediction.confidence + '% · ' +
+    Math.round(prediction.estimatedSpeed * 10) / 10 + ' km/h')
+}
+
+function advanceTrip() {
+  if (!pageAlive || !prediction || prediction.state === 'ARRIVED') return
+  const previousState = prediction.state
+  advancePrediction(prediction)
+  renderPrediction()
+  if (prediction.state !== previousState && prediction.state !== lastAlertedState) {
+    vibrateForState(prediction.state)
+    lastAlertedState = prediction.state
   }
 }
 
-function updateTripUi(shouldVibrate) {
-  const routeStep = routeSteps[stageIndex]
-  const stageStyles = getStageStyles()
-  const stage = stageStyles[routeStep.state] || stageStyles.MONITORING
-  const progressWidth = Math.max(
-    1,
-    Math.round(Layout.contentWidth * routeStep.progress)
-  )
-
-  alertCard.setProperty(hmUI.prop.MORE, {
-    x: Layout.leftMargin,
-    y: Layout.y(92),
-    w: Layout.contentWidth,
-    h: Layout.h(104),
-    radius: Layout.cardRadius,
-    color: stage.cardColor
-  })
-  alertAccent.setProperty(hmUI.prop.MORE, {
-    x: Layout.leftMargin,
-    y: Layout.y(92),
-    w: 6,
-    h: Layout.h(104),
-    radius: 3,
-    color: stage.accentColor
-  })
-  statusText.setProperty(hmUI.prop.MORE, {
-    x: Layout.innerMargin,
-    y: Layout.y(108),
-    w: Layout.innerWidth,
-    h: Layout.h(68),
-    text: t(stage.statusKey),
-    text_size: Type.button,
-    color: stage.textColor,
-    align_h: hmUI.align.CENTER_H,
-    align_v: hmUI.align.CENTER_V,
-    text_style: hmUI.text_style.WRAP
-  })
-  progressIndicator.setProperty(hmUI.prop.MORE, {
-    x: Layout.leftMargin,
-    y: Layout.y(207),
-    w: progressWidth,
-    h: Layout.h(6),
-    radius: Layout.h(3),
-    color: stage.progressColor
-  })
-  nextStopText.setProperty(hmUI.prop.TEXT, routeStep.stop)
-  distanceText.setProperty(hmUI.prop.TEXT, routeStep.distance)
-  etaText.setProperty(
-    hmUI.prop.TEXT,
-    routeStep.state === 'ARRIVED' ? t('trip_now') : routeStep.eta
-  )
-
-  if (stageIndex === routeSteps.length - 1) {
-    finishButton.setProperty(hmUI.prop.MORE, {
-      x: Layout.leftMargin,
-      y: Layout.y(370),
-      w: Layout.contentWidth,
-      h: Layout.h(50),
-      text: t('trip_btn_finish'),
-      normal_color: activeTheme.danger,
-      press_color: activeTheme.accent,
-      color: activeTheme.onAccent
-    })
+function finishTrip() {
+  if (!pageAlive || navigationLocked) return
+  navigationLocked = true
+  finishTripSession()
+  destroyHaptics()
+  try {
+    if (typeof hmApp !== 'undefined' && typeof hmApp.gotoPage === 'function') {
+      hmApp.gotoPage({ url: 'page/index' })
+      return
+    }
+  } catch (error) {
+    console.log('RideWake Viaje: finish navigation failed')
   }
-
-  if (shouldVibrate && stage.haptic === 'short') vibrateShort()
-  if (shouldVibrate && stage.haptic === 'warning') vibrateWarning()
-  if (routeStep.state === 'NEAR' || routeStep.state === 'ARRIVED') {
-    keepScreenAwakeForAlert()
-  }
-}
-
-function advanceSimulation() {
-  if (stageIndex >= routeSteps.length - 1) {
-    stopSimulation()
-    return
-  }
-
-  stageIndex += 1
-  updateTripUi(true)
-
-  if (stageIndex === routeSteps.length - 1) {
-    journeyCompleted = true
-    stopSimulation()
-  }
+  navigationLocked = false
 }
 
 Page({
   build() {
-    initHaptics()
-    activeTheme = getTheme(getThemeMode())
-    stageIndex = 0
-    journeyCompleted = false
+    pageAlive = true
+    navigationLocked = false
+    lastAlertedState = 'MONITORING'
+    const destination = getSelectedDestination() || 'Casa'
+    prediction = createPrediction(destination)
 
-    const selectedDestination = getSelectedDestination() || 'home'
-    routeSteps = getRouteSteps(selectedDestination)
-    const destinationName = t(`dest_${selectedDestination}`)
-
-    hmUI.createWidget(hmUI.widget.FILL_RECT, {
-      x: 0,
-      y: Layout.y(0),
-      w: Layout.width,
-      h: Layout.height,
-      color: activeTheme.bg
+    hmUI.createWidget(hmUI.widget.TEXT, {
+      x: 12, y: layoutValue(24, 38), w: 168, h: layoutValue(24, 26),
+      text: t('trip_title'), text_size: layoutValue(19, 20), color: 0x35dce8,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.NONE
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.leftMargin,
-      y: Layout.y(32),
-      w: Layout.contentWidth,
-      h: Layout.h(20),
-      text: t('trip_title'),
-      text_size: Type.body,
-      color: activeTheme.accent,
-      align_h: hmUI.align.CENTER_H,
-      align_v: hmUI.align.CENTER_V
+      x: 12, y: layoutValue(94, 120), w: 168, h: layoutValue(20, 24),
+      text: getLanguage() === 'en' && destination === 'Casa' ? 'Home' :
+        getLanguage() === 'en' && destination === 'Universidad' ? 'University' : destination,
+      text_size: layoutValue(15, 17), color: 0xffffff,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.NONE
     })
 
-    hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.leftMargin,
-      y: Layout.y(58),
-      w: Layout.contentWidth,
-      h: Layout.h(26),
-      text: destinationName,
-      text_size: Type.button,
-      color: activeTheme.textPrimary,
-      align_h: hmUI.align.CENTER_H,
-      align_v: hmUI.align.CENTER_V,
+    statusWidget = hmUI.createWidget(hmUI.widget.TEXT, {
+      x: 12, y: layoutValue(54, 72), w: 168, h: layoutValue(32, 40),
+      text: stateText(prediction.state), text_size: layoutValue(13, 16), color: stateColor(prediction.state),
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.WRAP
     })
 
-    alertCard = hmUI.createWidget(hmUI.widget.FILL_RECT, {
-      x: Layout.leftMargin,
-      y: Layout.y(92),
-      w: Layout.contentWidth,
-      h: Layout.h(104),
-      radius: Layout.cardRadius,
-      color: activeTheme.cardBg
+    distanceWidget = hmUI.createWidget(hmUI.widget.TEXT, {
+      x: 12, y: layoutValue(120, 158), w: 168, h: layoutValue(22, 30),
+      text: t('trip_distance') + formatDistance(prediction.remainingDistance),
+      text_size: layoutValue(17, 20), color: 0xffffff,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.NONE
     })
 
-    alertAccent = hmUI.createWidget(hmUI.widget.FILL_RECT, {
-      x: Layout.leftMargin,
-      y: Layout.y(92),
-      w: 6,
-      h: Layout.h(104),
-      radius: 3,
-      color: activeTheme.success
+    etaWidget = hmUI.createWidget(hmUI.widget.TEXT, {
+      x: 12, y: layoutValue(148, 204), w: 168, h: layoutValue(28, 36),
+      text: t('trip_eta') + formatEta(prediction.etaMinutes),
+      text_size: layoutValue(21, 24), color: 0x72edf2,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.NONE
     })
 
-    statusText = hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.innerMargin,
-      y: Layout.y(108),
-      w: Layout.innerWidth,
-      h: Layout.h(68),
-      text: t('trip_status_monitoring'),
-      text_size: Type.button,
-      color: activeTheme.success,
-      align_h: hmUI.align.CENTER_H,
-      align_v: hmUI.align.CENTER_V,
+    referenceWidget = hmUI.createWidget(hmUI.widget.TEXT, {
+      x: 12, y: layoutValue(182, 254), w: 168, h: layoutValue(24, 34),
+      text: t('trip_next') +
+        (getLanguage() === 'en' ? prediction.referenceEn : prediction.referenceEs),
+      text_size: layoutValue(12, 14), color: 0xb5c6c8,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.WRAP
     })
 
-    hmUI.createWidget(hmUI.widget.FILL_RECT, {
-      x: Layout.leftMargin,
-      y: Layout.y(207),
-      w: Layout.contentWidth,
-      h: Layout.h(6),
-      radius: Layout.h(3),
-      color: activeTheme.divider
-    })
-
-    progressIndicator = hmUI.createWidget(hmUI.widget.FILL_RECT, {
-      x: Layout.leftMargin,
-      y: Layout.y(207),
-      w: Math.round(Layout.contentWidth * routeSteps[0].progress),
-      h: Layout.h(6),
-      radius: Layout.h(3),
-      color: getStageStyles()[routeSteps[0].state].progressColor
-    })
-
-    hmUI.createWidget(hmUI.widget.FILL_RECT, {
-      x: Layout.leftMargin,
-      y: Layout.y(224),
-      w: Layout.contentWidth,
-      h: Layout.h(126),
-      radius: Layout.cardRadius,
-      color: activeTheme.cardBg
-    })
-
-    hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.innerMargin,
-      y: Layout.y(232),
-      w: Layout.innerWidth,
-      h: Layout.h(14),
-      text: t('trip_next_stop'),
-      text_size: 11,
-      color: activeTheme.textSecondary,
-      align_h: hmUI.align.CENTER_H,
-      align_v: hmUI.align.CENTER_V
-    })
-
-    nextStopText = hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.innerMargin,
-      y: Layout.y(248),
-      w: Layout.innerWidth,
-      h: Layout.h(20),
-      text: routeSteps[0].stop,
-      text_size: 13,
-      color: activeTheme.textPrimary,
-      align_h: hmUI.align.CENTER_H,
-      align_v: hmUI.align.CENTER_V,
+    reasonWidget = hmUI.createWidget(hmUI.widget.TEXT, {
+      x: 12, y: layoutValue(210, 302), w: 168, h: layoutValue(24, 42),
+      text: reasonText(prediction.state), text_size: layoutValue(12, 13), color: 0xffffff,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.WRAP
     })
 
-    hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.innerMargin,
-      y: Layout.y(274),
-      w: Layout.innerWidth,
-      h: Layout.h(14),
-      text: t('trip_distance_remaining'),
-      text_size: 11,
-      color: activeTheme.textSecondary,
-      align_h: hmUI.align.CENTER_H,
-      align_v: hmUI.align.CENTER_V
-    })
-
-    distanceText = hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.innerMargin,
-      y: Layout.y(289),
-      w: Layout.innerWidth,
-      h: Layout.h(24),
-      text: routeSteps[0].distance,
-      text_size: Type.brand,
-      color: activeTheme.textPrimary,
-      align_h: hmUI.align.CENTER_H,
-      align_v: hmUI.align.CENTER_V
+    confidenceWidget = hmUI.createWidget(hmUI.widget.TEXT, {
+      x: 12, y: layoutValue(236, 350), w: 168, h: layoutValue(16, 20),
+      text: t('trip_confidence') + prediction.confidence + '% · ' +
+        prediction.estimatedSpeed + ' km/h',
+      text_size: layoutValue(11, 12), color: 0xb5c6c8,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.NONE
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.innerMargin,
-      y: Layout.y(315),
-      w: Layout.innerWidth,
-      h: Layout.h(14),
-      text: t('trip_eta_remaining'),
-      text_size: 11,
-      color: activeTheme.textSecondary,
-      align_h: hmUI.align.CENTER_H,
-      align_v: hmUI.align.CENTER_V
+      x: 12, y: layoutValue(254, 376), w: 168, h: layoutValue(14, 18),
+      text: t('trip_demo'), text_size: layoutValue(11, 12), color: 0xb5c6c8,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.NONE
     })
 
-    etaText = hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.innerMargin,
-      y: Layout.y(329),
-      w: Layout.innerWidth,
-      h: Layout.h(18),
-      text: routeSteps[0].eta,
-      text_size: Type.button,
-      color: activeTheme.accent,
-      align_h: hmUI.align.CENTER_H,
-      align_v: hmUI.align.CENTER_V
+    hmUI.createWidget(hmUI.widget.BUTTON, {
+      x: layoutValue(20, 18), y: layoutValue(274, 396),
+      w: layoutValue(68, 72), h: layoutValue(68, 72), radius: layoutValue(34, 36),
+      normal_color: 0x20cbd6, press_color: 0x118993,
+      text: t('trip_advance'), text_size: layoutValue(12, 13), color: 0x00191b,
+      click_func: advanceTrip
     })
 
-    finishButton = hmUI.createWidget(hmUI.widget.BUTTON, {
-      x: Layout.leftMargin,
-      y: Layout.y(370),
-      w: Layout.contentWidth,
-      h: Layout.h(50),
-      radius: Layout.h(25),
-      normal_color: activeTheme.btnSecondary,
-      press_color: activeTheme.cardBg,
-      text: t('trip_btn_finish'),
-      text_size: Type.button,
-      color: activeTheme.textPrimary,
-      click_func() {
-        vibrateShort()
-        stopSimulation()
-        journeyCompleted = true
-        clearSession()
-        hmApp.gotoPage({ url: 'page/index' })
-      }
+    hmUI.createWidget(hmUI.widget.BUTTON, {
+      x: layoutValue(104, 102), y: layoutValue(274, 396),
+      w: layoutValue(68, 72), h: layoutValue(68, 72), radius: layoutValue(34, 36),
+      normal_color: 0x16353a, press_color: 0x24636a,
+      text: t('trip_finish'), text_size: layoutValue(11, 12), color: 0xff6b6b,
+      click_func: finishTrip
     })
-
-    updateTripUi(false)
-    timerId = timer.createTimer(4000, 4000, advanceSimulation, {})
   },
 
   onDestroy() {
-    stopSimulation()
-    stopVibration()
-    if (!journeyCompleted) clearSession()
+    pageAlive = false
     destroyHaptics()
-    alertCard = null
-    alertAccent = null
-    statusText = null
-    progressIndicator = null
-    nextStopText = null
-    distanceText = null
-    etaText = null
-    finishButton = null
-    routeSteps = []
-    activeTheme = getTheme('light')
+    prediction = null
+    statusWidget = null
+    distanceWidget = null
+    etaWidget = null
+    referenceWidget = null
+    reasonWidget = null
+    confidenceWidget = null
   }
 })
