@@ -1,153 +1,132 @@
-import { getTheme, Layout, Type } from '../utils/theme'
-import { t } from '../utils/i18n'
-import { getSelectedDestination, getThemeMode, setSelectedDestination } from '../utils/session'
-import { destroyHaptics, initHaptics, vibrateShort } from '../utils/haptics'
+import { getLanguage, t } from '../utils/i18n'
+import { getSelectedDestination } from '../utils/session'
+import { getRouteSummary } from '../utils/prediction'
+import { layoutValue, measureWrappedText } from '../utils/layout'
 
-let currentSelection = null
-let homeButton = null
-let universityButton = null
-let continueButton = null
-let activeTheme = getTheme('light')
+let pageAlive = false
+let navigationLocked = false
 
-function destinationButtonProps(y, destination, text) {
-  const isSelected = currentSelection === destination
-
-  return {
-    x: Layout.leftMargin,
-    y: Layout.y(y),
-    w: Layout.contentWidth,
-    h: Layout.h(54),
-    radius: Layout.h(27),
-    normal_color: isSelected ? activeTheme.accent : activeTheme.btnSecondary,
-    press_color: isSelected ? activeTheme.success : activeTheme.cardBg,
-    text,
-    text_size: Type.button,
-    color: isSelected ? activeTheme.onAccent : activeTheme.textPrimary
+function destinationName(destination) {
+  if (destination === 'Universidad') {
+    return getLanguage() === 'en' ? 'University' : 'Universidad'
   }
+  return getLanguage() === 'en' ? 'Home' : 'Casa'
 }
 
-function continueButtonProps() {
-  const isEnabled = currentSelection !== null
-
-  return {
-    x: Layout.leftMargin,
-    y: Layout.y(300),
-    w: Layout.contentWidth,
-    h: Layout.h(52),
-    radius: Layout.h(26),
-    normal_color: isEnabled ? activeTheme.success : activeTheme.disabledBg,
-    press_color: isEnabled ? activeTheme.accent : activeTheme.disabledBg,
-    text: t('dest_continue'),
-    text_size: Type.button,
-    color: isEnabled ? activeTheme.onAccent : activeTheme.disabledText
+function goBack() {
+  if (!pageAlive || navigationLocked) return
+  navigationLocked = true
+  try {
+    if (typeof hmApp !== 'undefined' && typeof hmApp.goBack === 'function') {
+      hmApp.goBack()
+      return
+    }
+  } catch (error) {
+    console.log('RideWake Destino: goBack failed')
   }
+  navigationLocked = false
 }
 
-function refreshSelection() {
-  homeButton.setProperty(
-    hmUI.prop.MORE,
-    destinationButtonProps(126, 'home', t('dest_home'))
-  )
-  universityButton.setProperty(
-    hmUI.prop.MORE,
-    destinationButtonProps(194, 'university', t('dest_university'))
-  )
-  continueButton.setProperty(hmUI.prop.MORE, continueButtonProps())
-}
-
-function selectDestination(destination) {
-  vibrateShort()
-  currentSelection = destination
-  setSelectedDestination(destination)
-  refreshSelection()
+function continueToConfirmation() {
+  if (!pageAlive || navigationLocked) return
+  navigationLocked = true
+  try {
+    if (typeof hmApp !== 'undefined' && typeof hmApp.gotoPage === 'function') {
+      hmApp.gotoPage({ url: 'page/confirmation' })
+      return
+    }
+  } catch (error) {
+    console.log('RideWake Destino: navigation failed')
+  }
+  navigationLocked = false
 }
 
 Page({
   build() {
-    initHaptics()
-    activeTheme = getTheme(getThemeMode())
-    currentSelection = getSelectedDestination()
+    pageAlive = true
+    navigationLocked = false
+    const destination = getSelectedDestination() || 'Casa'
+    const route = getRouteSummary(destination)
+    const routeText = t(route.descriptionKey)
+    const routeTextSize = layoutValue(13, 14)
+    const routeTextHeight = measureWrappedText(
+      routeText,
+      routeTextSize,
+      168,
+      layoutValue(36, 42),
+      layoutValue(44, 52)
+    )
 
-    hmUI.createWidget(hmUI.widget.FILL_RECT, {
-      x: 0,
-      y: Layout.y(0),
-      w: Layout.width,
-      h: Layout.height,
-      color: activeTheme.bg
+    hmUI.createWidget(hmUI.widget.TEXT, {
+      x: 12, y: layoutValue(24, 48), w: 168, h: layoutValue(24, 26),
+      text: t('destination_title'), text_size: layoutValue(19, 20), color: 0x35dce8,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.NONE
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.leftMargin,
-      y: Layout.y(38),
-      w: Layout.contentWidth,
-      h: Layout.h(20),
-      text: t('dest_header'),
-      text_size: Type.body,
-      color: activeTheme.accent,
-      align_h: hmUI.align.CENTER_H,
-      align_v: hmUI.align.CENTER_V
+      x: 12, y: layoutValue(58, 100), w: 168, h: layoutValue(26, 30),
+      text: destinationName(destination), text_size: layoutValue(20, 22), color: 0xffffff,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.NONE
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      x: Layout.leftMargin,
-      y: Layout.y(66),
-      w: Layout.contentWidth,
-      h: Layout.h(38),
-      text: t('dest_subtitle'),
-      text_size: 20,
-      color: activeTheme.textPrimary,
-      align_h: hmUI.align.CENTER_H,
-      align_v: hmUI.align.CENTER_V,
+      x: 12, y: layoutValue(96, 150), w: 168, h: layoutValue(20, 22),
+      text: t('destination_route'), text_size: layoutValue(13, 14), color: 0xb5c6c8,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.NONE
+    })
+
+    hmUI.createWidget(hmUI.widget.TEXT, {
+      x: 12, y: layoutValue(120, 178), w: 168, h: routeTextHeight,
+      text: routeText, text_size: routeTextSize, color: 0xffffff,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.WRAP
     })
 
-    homeButton = hmUI.createWidget(hmUI.widget.BUTTON, {
-      ...destinationButtonProps(126, 'home', t('dest_home')),
-      click_func() {
-        selectDestination('home')
-      }
+    hmUI.createWidget(hmUI.widget.TEXT, {
+      x: 12, y: layoutValue(164, 258), w: 168, h: layoutValue(24, 30),
+      text: t('destination_distance') + route.initialDistance.toFixed(1) + ' km',
+      text_size: layoutValue(16, 20), color: 0xffffff,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.NONE
     })
 
-    universityButton = hmUI.createWidget(hmUI.widget.BUTTON, {
-      ...destinationButtonProps(194, 'university', t('dest_university')),
-      click_func() {
-        selectDestination('university')
-      }
+    hmUI.createWidget(hmUI.widget.TEXT, {
+      x: 12, y: layoutValue(194, 306), w: 168, h: layoutValue(26, 34),
+      text: t('destination_eta') + route.initialEta + ' min',
+      text_size: layoutValue(18, 22), color: 0x72edf2,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.NONE
     })
 
-    continueButton = hmUI.createWidget(hmUI.widget.BUTTON, {
-      ...continueButtonProps(),
-      click_func() {
-        if (currentSelection === null) return
-
-        vibrateShort()
-        hmApp.gotoPage({ url: 'page/confirmation' })
-      }
+    hmUI.createWidget(hmUI.widget.TEXT, {
+      x: 12, y: layoutValue(226, 352), w: 168, h: layoutValue(16, 18),
+      text: t('trip_demo'), text_size: layoutValue(11, 12), color: 0xb5c6c8,
+      align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
+      text_style: hmUI.text_style.NONE
     })
 
     hmUI.createWidget(hmUI.widget.BUTTON, {
-      x: Layout.leftMargin,
-      y: Layout.y(372),
-      w: Layout.contentWidth,
-      h: Layout.h(44),
-      radius: Layout.h(22),
-      normal_color: activeTheme.cardBg,
-      press_color: activeTheme.btnSecondary,
-      text: t('dest_back'),
-      text_size: Type.body,
-      color: activeTheme.textSecondary,
-      click_func() {
-        vibrateShort()
-        hmApp.goBack()
-      }
+      x: layoutValue(20, 18), y: layoutValue(256, 388),
+      w: layoutValue(68, 72), h: layoutValue(68, 72), radius: layoutValue(34, 36),
+      normal_color: 0x16353a, press_color: 0x24636a,
+      text: t('destination_change'), text_size: 12, color: 0x72edf2,
+      click_func: goBack
+    })
+
+    hmUI.createWidget(hmUI.widget.BUTTON, {
+      x: layoutValue(104, 102), y: layoutValue(256, 388),
+      w: layoutValue(68, 72), h: layoutValue(68, 72), radius: layoutValue(34, 36),
+      normal_color: 0x20cbd6, press_color: 0x118993,
+      text: t('destination_continue'), text_size: 12, color: 0x00191b,
+      click_func: continueToConfirmation
     })
   },
 
   onDestroy() {
-    destroyHaptics()
-    homeButton = null
-    universityButton = null
-    continueButton = null
-    activeTheme = getTheme('light')
+    pageAlive = false
+    navigationLocked = false
   }
 })
