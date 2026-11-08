@@ -25,6 +25,42 @@ const ROUTES = {
       { distance: 0.3, elapsedMinutes: 19, knownDelayMinutes: 0.2, referenceEs: 'Entrada del campus', referenceEn: 'Campus entrance' },
       { distance: 0, elapsedMinutes: 21, knownDelayMinutes: 0, referenceEs: 'Universidad', referenceEn: 'University' }
     ]
+  },
+  Centro: {
+    initialDistance: 3,
+    initialSpeed: 12,
+    descriptionKey: 'route_center',
+    simulated: true,
+    checkpoints: [
+      { distance: 3, elapsedMinutes: 0, knownDelayMinutes: 0.4, referenceEs: 'DEMO · Parque Central', referenceEn: 'DEMO · Central Park' },
+      { distance: 1.1, elapsedMinutes: 9, knownDelayMinutes: 0.5, referenceEs: 'DEMO · Calle 20', referenceEn: 'DEMO · 20th Street' },
+      { distance: 0.3, elapsedMinutes: 13, knownDelayMinutes: 0.2, referenceEs: 'DEMO · Plaza Centro', referenceEn: 'DEMO · Downtown Sq.' },
+      { distance: 0, elapsedMinutes: 15, knownDelayMinutes: 0, referenceEs: 'DEMO · Centro', referenceEn: 'DEMO · Centro' }
+    ]
+  },
+  'Belén': {
+    initialDistance: 3.6,
+    initialSpeed: 12,
+    descriptionKey: 'route_belen',
+    simulated: true,
+    checkpoints: [
+      { distance: 3.6, elapsedMinutes: 0, knownDelayMinutes: 0.6, referenceEs: 'DEMO · Av. Panamericana', referenceEn: 'DEMO · Panamericana Ave.' },
+      { distance: 1.2, elapsedMinutes: 11, knownDelayMinutes: 0.7, referenceEs: 'DEMO · Glorieta Sur', referenceEn: 'DEMO · South Roundabout' },
+      { distance: 0.32, elapsedMinutes: 16, knownDelayMinutes: 0.3, referenceEs: 'DEMO · Calle Belén', referenceEn: 'DEMO · Belen Street' },
+      { distance: 0, elapsedMinutes: 18, knownDelayMinutes: 0, referenceEs: 'DEMO · Belén', referenceEn: 'DEMO · Belén' }
+    ]
+  },
+  'Único': {
+    initialDistance: 2.8,
+    initialSpeed: 12,
+    descriptionKey: 'route_unico',
+    simulated: true,
+    checkpoints: [
+      { distance: 2.8, elapsedMinutes: 0, knownDelayMinutes: 0.3, referenceEs: 'DEMO · Parque Infantil', referenceEn: 'DEMO · Children Park' },
+      { distance: 1.15, elapsedMinutes: 8, knownDelayMinutes: 0.4, referenceEs: 'DEMO · Carrera 27', referenceEn: 'DEMO · 27th Avenue' },
+      { distance: 0.25, elapsedMinutes: 12, knownDelayMinutes: 0.2, referenceEs: 'DEMO · Acceso Único', referenceEn: 'DEMO · Unico entrance' },
+      { distance: 0, elapsedMinutes: 14, knownDelayMinutes: 0, referenceEs: 'DEMO · Único', referenceEn: 'DEMO · Único' }
+    ]
   }
 }
 
@@ -152,7 +188,8 @@ function confidenceFor(sampleCount, previousSpeed, observedSpeed) {
 }
 
 export function getRouteSummary(destination) {
-  const key = destination === 'Universidad' ? 'Universidad' : 'Casa'
+  const key = ROUTES[destination] ? destination : null
+  if (!key) return null
   const route = ROUTES[key]
   return {
     destination: key,
@@ -164,12 +201,15 @@ export function getRouteSummary(destination) {
       0,
       route.checkpoints[0].knownDelayMinutes
     )),
-    descriptionKey: route.descriptionKey
+    descriptionKey: route.descriptionKey,
+    simulated: route.simulated === true,
+    checkpointCount: route.checkpoints.length
   }
 }
 
 export function createPrediction(destination) {
-  const key = destination === 'Universidad' ? 'Universidad' : 'Casa'
+  const key = ROUTES[destination] ? destination : null
+  if (!key) return null
   const route = ROUTES[key]
   const checkpoint = route.checkpoints[0]
   const eta = predictEtaMinutes(
@@ -197,7 +237,8 @@ export function createPrediction(destination) {
     referenceEs: checkpoint.referenceEs,
     referenceEn: checkpoint.referenceEn,
     sampleCount: 0,
-    predictionSource: 'ML'
+    predictionSource: 'ML',
+    simulated: route.simulated === true
   }
 }
 

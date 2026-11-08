@@ -42,9 +42,28 @@ async function run() {
     check(session.getLanguage() === 'en', 'No conservó inglés')
     check(!session.isVibrationEnabled(), 'No conservó vibración desactivada')
     check(session.getVibrationIntensity() === 'strong', 'No conservó intensidad fuerte')
-    session.setCustomDestination('  Centro Comercial  ')
-    check(session.getCustomDestination() === 'Centro Comercial',
-      'No conservó el destino personalizado')
+    check(session.normalizeDestination('CASA') === 'Casa' &&
+      session.normalizeDestination('UNIVERSITY') === 'Universidad',
+    'No normalizó los destinos originales sin distinguir mayúsculas')
+    check(session.normalizeDestination('cEnTrO') === 'Centro' &&
+      session.normalizeDestination('BELÉN') === 'Belén' &&
+      session.normalizeDestination('único') === 'Único',
+    'No normalizó los tres destinos escritos')
+    check(session.getDestinationDisplayName('Casa', 'en') === 'Home' &&
+      session.getDestinationDisplayName('Universidad', 'en') === 'University' &&
+      session.getDestinationDisplayName('belen', 'es') === 'Belén',
+    'Los nombres visibles no son canónicos')
+    check(session.setCustomDestination('  CeNtRo  ') === 'Centro' &&
+      session.getCustomDestination() === 'Centro' &&
+      session.getSelectedDestination() === 'Centro',
+    'El teclado no unificó Centro con el destino seleccionado')
+    check(session.setCustomDestination('BELEN') === 'Belén' &&
+      session.setCustomDestination('unico') === 'Único' &&
+      session.getSelectedDestination() === 'Único',
+    'Belén y Único no se seleccionaron desde texto')
+    check(session.setCustomDestination('Centro Comercial') === null &&
+      session.getSelectedDestination() === 'Único',
+    'Un destino desconocido alteró la selección válida')
 
     const firstRun = session.startTripSession()
     const secondRun = session.startTripSession()
@@ -52,7 +71,7 @@ async function run() {
     check(globalData.tripActive === true, 'El viaje no quedó activo')
     session.finishTripSession()
     check(globalData.tripActive === false, 'El viaje no se finalizó')
-    check(globalData.selectedDestination === 'Casa' && globalData.language === 'en',
+    check(globalData.selectedDestination === 'Único' && globalData.language === 'en',
       'Finalizar alteró destino o preferencias')
 
     return {

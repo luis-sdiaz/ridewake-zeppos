@@ -1,5 +1,5 @@
 import { getLanguage, t } from '../utils/i18n'
-import { getSelectedDestination, startTripSession } from '../utils/session'
+import { getDestinationDisplayName, getSelectedDestination, startTripSession } from '../utils/session'
 import { getRouteSummary } from '../utils/prediction'
 import { layoutValue, measureWrappedText } from '../utils/layout'
 import { createPageBackground, getActiveTheme } from '../utils/theme'
@@ -8,10 +8,7 @@ let pageAlive = false
 let startLocked = false
 
 function destinationName(destination) {
-  if (destination === 'Universidad') {
-    return getLanguage() === 'en' ? 'University' : 'Universidad'
-  }
-  return getLanguage() === 'en' ? 'Home' : 'Casa'
+  return getDestinationDisplayName(destination, getLanguage()) || t('keyboard_unavailable')
 }
 
 function goBack() {
@@ -46,7 +43,7 @@ Page({
     const theme = getActiveTheme()
     createPageBackground()
     startLocked = false
-    const destination = getSelectedDestination() || 'Casa'
+    const destination = getSelectedDestination()
     const route = getRouteSummary(destination)
     const confirmationText = t('confirmation_message')
     const confirmationTextSize = layoutValue(14, 15)
@@ -74,15 +71,19 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: 12, y: layoutValue(104, 176), w: 168, h: layoutValue(24, 30),
-      text: t('confirmation_distance') + route.initialDistance.toFixed(1) + ' km',
-      text_size: layoutValue(16, 20), color: theme.textPrimary,
+      text: route
+        ? t(route.simulated ? 'confirmation_distance_simulated' : 'confirmation_distance') +
+          route.initialDistance.toFixed(1) + ' km'
+        : t('confirmation_distance') + '--',
+      text_size: route && route.simulated ? layoutValue(14, 17) : layoutValue(16, 20),
+      color: theme.textPrimary,
       align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.NONE
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: 12, y: layoutValue(138, 224), w: 168, h: layoutValue(26, 34),
-      text: t('confirmation_eta') + route.initialEta + ' min',
+      text: t('confirmation_eta') + (route ? route.initialEta + ' min' : '--'),
       text_size: layoutValue(18, 22), color: theme.btnSecondaryText,
       align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.NONE

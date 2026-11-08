@@ -1,5 +1,5 @@
 import { getLanguage, t } from '../utils/i18n'
-import { getSelectedDestination } from '../utils/session'
+import { getDestinationDisplayName, getSelectedDestination } from '../utils/session'
 import { getRouteSummary } from '../utils/prediction'
 import { layoutValue, measureWrappedText } from '../utils/layout'
 import { createPageBackground, getActiveTheme } from '../utils/theme'
@@ -8,10 +8,7 @@ let pageAlive = false
 let navigationLocked = false
 
 function destinationName(destination) {
-  if (destination === 'Universidad') {
-    return getLanguage() === 'en' ? 'University' : 'Universidad'
-  }
-  return getLanguage() === 'en' ? 'Home' : 'Casa'
+  return getDestinationDisplayName(destination, getLanguage()) || t('keyboard_unavailable')
 }
 
 function goBack() {
@@ -48,9 +45,9 @@ Page({
     const theme = getActiveTheme()
     createPageBackground()
     navigationLocked = false
-    const destination = getSelectedDestination() || 'Casa'
+    const destination = getSelectedDestination()
     const route = getRouteSummary(destination)
-    const routeText = t(route.descriptionKey)
+    const routeText = route ? t(route.descriptionKey) : t('keyboard_unavailable')
     const routeTextSize = layoutValue(13, 14)
     const routeTextHeight = measureWrappedText(
       routeText,
@@ -90,15 +87,19 @@ Page({
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: 12, y: layoutValue(164, 258), w: 168, h: layoutValue(24, 30),
-      text: t('destination_distance') + route.initialDistance.toFixed(1) + ' km',
-      text_size: layoutValue(16, 20), color: theme.textPrimary,
+      text: route
+        ? t(route.simulated ? 'destination_distance_simulated' : 'destination_distance') +
+          route.initialDistance.toFixed(1) + ' km'
+        : t('destination_distance') + '--',
+      text_size: route && route.simulated ? layoutValue(14, 17) : layoutValue(16, 20),
+      color: theme.textPrimary,
       align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.NONE
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: 12, y: layoutValue(194, 306), w: 168, h: layoutValue(26, 34),
-      text: t('destination_eta') + route.initialEta + ' min',
+      text: t('destination_eta') + (route ? route.initialEta + ' min' : '--'),
       text_size: layoutValue(18, 22), color: theme.btnSecondaryText,
       align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.NONE

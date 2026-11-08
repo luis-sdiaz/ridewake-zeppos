@@ -12,14 +12,15 @@ function stripImports(source) {
 function createHarness() {
   const widgets = []
   const calls = { back: 0 }
-  const state = { customDestination: null }
+  const state = { customDestination: null, selectedDestination: null }
   let page
   const translations = {
     keyboard_title: 'DESTINATION', keyboard_groups: 'GROUPS',
     keyboard_space: 'SPACE', keyboard_delete: 'DELETE',
     keyboard_done: 'DONE', keyboard_cancel: 'CANCEL',
     keyboard_edit: 'EDIT', keyboard_experimental: 'Text input test',
-    keyboard_empty: 'Type a destination', home_nav_error: 'Could not open'
+    keyboard_empty: 'Type a destination', keyboard_unavailable: 'DESTINATION UNAVAILABLE',
+    home_nav_error: 'Could not open'
   }
   const hmUI = {
     widget: { TEXT: 'TEXT', BUTTON: 'BUTTON' },
@@ -49,11 +50,19 @@ function createHarness() {
     getActiveTheme: () => ({
       bg: 0, title: 1, textPrimary: 2, textSecondary: 3,
       btnSecondary: 4, btnSecondaryPress: 5, btnSecondaryText: 6,
-      accent: 7, accentPress: 8, onAccent: 9
+      accent: 7, accentPress: 8, onAccent: 9, alertEarly: 10
     }),
     createPageBackground: () => null,
-    layoutValue: (compactValue) => compactValue
-    ,setCustomDestination: (value) => { state.customDestination = value.trim() }
+    layoutValue: (compactValue) => compactValue,
+    setCustomDestination(value) {
+      const aliases = { centro: 'Centro', belen: 'Belén', 'belén': 'Belén',
+        unico: 'Único', 'único': 'Único', casa: 'Casa', universidad: 'Universidad' }
+      const destination = aliases[String(value).trim().toLowerCase()] || null
+      if (!destination) return null
+      state.customDestination = destination
+      state.selectedDestination = destination
+      return destination
+    }
   }
   vm.runInNewContext(stripImports(fs.readFileSync(keyboardPath, 'utf8')), context)
   return { page, widgets, calls, state, getPage: () => page }
@@ -74,21 +83,47 @@ function run() {
   check(harness.widgets.length === initialWidgetCount &&
     harness.widgets.some((widget) => widget.props.text === 'Type a destination'),
   'El destino vacío debe mostrar una indicación sin crear widgets')
-  byText('OPQ').props.click_func()
-  check(Boolean(byText('O') && byText('P') && byText('Q')), 'No mostró letras del grupo OPQ')
-  byText('P').props.click_func()
-  byText('GROUPS').props.click_func()
-  byText('SPACE').props.click_func()
-  byText('ABC').props.click_func()
-  byText('A').props.click_func()
-  byText('DELETE').props.click_func()
+  function typeText(activeHarness, text) {
+    const find = (label) => activeHarness.widgets.find((widget) => widget.props.text === label)
+    for (const character of text) {
+      const group = ['ABC', 'DEF', 'GHI', 'JKL', 'MNÑ', 'OPQ', 'RST', 'UVW', 'XYZ']
+        .find((value) => value.indexOf(character) >= 0)
+      find(group).props.click_func()
+      find(character).props.click_func()
+      find('GROUPS').props.click_func()
+    }
+  }
+  typeText(harness, 'CENTRO')
   byText('DONE').props.click_func()
-  check(harness.state.customDestination === 'P', 'LISTO no guardó el destino personalizado')
+  check(harness.state.customDestination === 'Centro' &&
+    harness.state.selectedDestination === 'Centro',
+  'LISTO no seleccionó Centro')
   check(harness.calls.back === 1, 'LISTO no regresó a Inicio')
   byText('DONE').props.click_func()
   check(harness.calls.back === 1, 'LISTO navegó más de una vez')
   check(!byText('EDIT') && !byText('CANCEL'), 'No debe aparecer una confirmación intermedia')
   check(Boolean(byText('GROUPS')), 'GRUPOS debe permanecer en la interfaz')
+
+  for (const [typed, expected] of [['BELEN', 'Belén'], ['UNICO', 'Único']]) {
+    const destinationHarness = createHarness()
+    destinationHarness.getPage().build()
+    typeText(destinationHarness, typed)
+    destinationHarness.widgets.find((widget) => widget.props.text === 'DONE').props.click_func()
+    check(destinationHarness.state.selectedDestination === expected &&
+      destinationHarness.calls.back === 1,
+    `${typed}: LISTO no seleccionó el destino canónico`)
+  }
+
+  const unavailableHarness = createHarness()
+  unavailableHarness.getPage().build()
+  typeText(unavailableHarness, 'P')
+  unavailableHarness.widgets.find((widget) => widget.props.text === 'DONE').props.click_func()
+  check(unavailableHarness.state.selectedDestination === null &&
+    unavailableHarness.calls.back === 0,
+  'Un destino desconocido se guardó o regresó a Inicio')
+  check(unavailableHarness.widgets.some((widget) =>
+    widget.props.text === 'DESTINATION UNAVAILABLE'),
+  'Un destino desconocido no mostró un aviso claro')
   const limitHarness = createHarness()
   limitHarness.getPage().build()
   const limitByText = (text) => limitHarness.widgets.find((widget) =>

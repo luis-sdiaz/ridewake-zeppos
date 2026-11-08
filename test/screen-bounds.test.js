@@ -58,6 +58,8 @@ function buildPage(name, expanded) {
     t: (key) => key,
     getLanguage: () => 'es',
     getSelectedDestination: () => 'Casa',
+    getDestinationDisplayName: (value, language) =>
+      language === 'en' && value === 'Casa' ? 'Home' : value,
     getCustomDestination: () => null,
     getTheme: () => 'dark',
     clearCustomDestination() {},

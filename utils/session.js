@@ -25,9 +25,29 @@ export function getGlobalState() {
 }
 
 export function normalizeDestination(value) {
-  if (value === 'Casa' || value === 'home') return 'Casa'
-  if (value === 'Universidad' || value === 'university') return 'Universidad'
+  const normalized = String(value || '').trim().toLowerCase()
+    .replace(/[áàä]/g, 'a')
+    .replace(/[éèë]/g, 'e')
+    .replace(/[íìï]/g, 'i')
+    .replace(/[óòö]/g, 'o')
+    .replace(/[úùü]/g, 'u')
+
+  if (normalized === 'casa' || normalized === 'home') return 'Casa'
+  if (normalized === 'universidad' || normalized === 'university') return 'Universidad'
+  if (normalized === 'centro' || normalized === 'downtown') return 'Centro'
+  if (normalized === 'belen') return 'Belén'
+  if (normalized === 'unico') return 'Único'
   return null
+}
+
+export function getDestinationDisplayName(value, language) {
+  const destination = normalizeDestination(value)
+  if (!destination) return null
+  if (language === 'en') {
+    if (destination === 'Casa') return 'Home'
+    if (destination === 'Universidad') return 'University'
+  }
+  return destination
 }
 
 export function setSelectedDestination(value) {
@@ -41,14 +61,16 @@ export function getSelectedDestination() {
 }
 
 export function setCustomDestination(value) {
-  const text = String(value || '').trim().slice(0, 20)
-  getGlobalState().customDestination = text || null
-  return getGlobalState().customDestination
+  const destination = normalizeDestination(String(value || '').slice(0, 20))
+  if (!destination) return null
+  const state = getGlobalState()
+  state.customDestination = destination
+  state.selectedDestination = destination
+  return destination
 }
 
 export function getCustomDestination() {
-  const value = getGlobalState().customDestination
-  return typeof value === 'string' && value.trim() ? value : null
+  return normalizeDestination(getGlobalState().customDestination)
 }
 
 export function clearCustomDestination() {

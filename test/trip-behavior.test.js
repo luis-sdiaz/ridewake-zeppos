@@ -54,6 +54,10 @@ function createRuntime(shared, predictionApi) {
     t: (key) => key,
     getLanguage: () => shared.language,
     getSelectedDestination: () => shared.destination,
+    getDestinationDisplayName(value, language) {
+      const names = { Casa: 'Home', Universidad: 'University' }
+      return language === 'en' ? (names[value] || value) : value
+    },
     getCustomDestination: () => null,
     clearCustomDestination() {},
     getTheme: () => 'dark',
@@ -163,9 +167,66 @@ async function run() {
   check(byText('destination_distance4.1 km') && byText('destination_eta20 min'),
     'Universidad no mostró 4.1 km y 20 min')
 
+  for (const destination of ['Centro', 'Belén', 'Único']) {
+    const summary = predictionApi.getRouteSummary(destination)
+    const prediction = predictionApi.createPrediction(destination)
+    check(summary && summary.simulated && summary.checkpointCount === 4,
+      `${destination}: ruta DEMO incompleta`)
+    check(prediction.predictionSource === 'ML' &&
+      prediction.estimatedSpeed > 0 &&
+      prediction.etaMinutes !== null,
+    `${destination}: no inició con inferencia ML`)
+    let previousDistance = prediction.remainingDistance
+    for (let step = 1; step < summary.checkpointCount; step += 1) {
+      predictionApi.advancePrediction(prediction)
+      check(prediction.remainingDistance < previousDistance &&
+        prediction.etaMinutes !== null &&
+        prediction.referenceEs.indexOf('DEMO') === 0,
+      `${destination}: checkpoint ${step} incoherente`)
+      previousDistance = prediction.remainingDistance
+    }
+    check(prediction.state === 'ARRIVED' && prediction.remainingDistance === 0,
+      `${destination}: no llegó al último checkpoint`)
+
+    shared.destination = destination
+    shared.tripRunId = 0
+    shared.tripActive = false
+    runtime = createRuntime(shared, predictionApi)
+    runtime.load('destination')
+    byText = (text) => runtime.widgets.find((widget) => widget.props.text === text)
+    check(byText(destination) && byText(
+      'destination_distance_simulated' + summary.initialDistance.toFixed(1) + ' km'
+    ), `${destination}: Destino no conservó la ruta`)
+    byText('destination_continue').props.click_func()
+    check(runtime.calls.routes[0] === 'page/confirmation',
+      `${destination}: SEGUIR no abrió Confirmación`)
+
+    runtime = createRuntime(shared, predictionApi)
+    runtime.load('confirmation')
+    byText = (text) => runtime.widgets.find((widget) => widget.props.text === text)
+    check(byText(destination), `${destination}: Confirmación cambió el destino`)
+    byText('confirmation_start').props.click_func()
+    check(shared.tripActive && runtime.calls.routes[0] === 'page/trip',
+      `${destination}: INICIAR no creó la sesión`)
+
+    runtime = createRuntime(shared, predictionApi)
+    runtime.load('trip')
+    byText = (text) => runtime.widgets.find((widget) => widget.props.text === text)
+    check(runtime.timers.size === 1 && byText(destination),
+      `${destination}: Viaje no inició automáticamente`)
+    runtime.tick(); runtime.tick(); runtime.tick()
+    check(byText('state_arrived') &&
+      runtime.calls.haptics.join(',') === 'EARLY_ALERT,NEAR,ARRIVED' &&
+      runtime.timers.size === 0,
+    `${destination}: estados, alertas o temporizador incorrectos`)
+    byText('trip_finish').props.click_func()
+    check(!shared.tripActive && runtime.calls.routes[0] === 'page/index',
+      `${destination}: FINALIZAR no limpió la sesión`)
+  }
+
   return {
     name: 'Flujo completo RideWake', assertions,
-    detail: 'Inicio, Destino, Confirmación, Viaje, regreso, doble toque y ambas rutas validados'
+    detail: 'Inicio, Destino, Confirmación, Viaje, regresos, ML, rutas DEMO y alertas validados'
   }
 }
 

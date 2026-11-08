@@ -163,14 +163,21 @@ function finishInput() {
   if (finishing) return
   const trimmedDestination = destinationText.trim()
   if (!trimmedDestination) {
-    setWidget(messageWidget, {
+    setWidget(previewWidget, {
       text: t('keyboard_empty'),
       color: getActiveTheme().textSecondary
     })
     return
   }
+  const selectedDestination = setCustomDestination(trimmedDestination)
+  if (!selectedDestination) {
+    setWidget(previewWidget, {
+      text: t('keyboard_unavailable'),
+      color: getActiveTheme().alertEarly
+    })
+    return
+  }
   finishing = true
-  setCustomDestination(trimmedDestination)
   try {
     if (typeof hmApp !== 'undefined' && typeof hmApp.goBack === 'function') {
       hmApp.goBack()

@@ -1,7 +1,7 @@
 import { getLanguage, t } from '../utils/i18n'
 import {
   clearCustomDestination,
-  getCustomDestination,
+  getDestinationDisplayName,
   getSelectedDestination,
   setSelectedDestination
 } from '../utils/session'
@@ -14,12 +14,7 @@ let homeButton = null
 let universityButton = null
 
 function destinationLabel(destination) {
-  if (getLanguage() === 'en') {
-    if (destination === 'Universidad') return 'University'
-    if (destination === 'Casa') return 'Home'
-    return destination
-  }
-  return destination
+  return getDestinationDisplayName(destination, getLanguage()) || ''
 }
 
 function updateSelection(button, selected, theme) {
@@ -77,8 +72,7 @@ Page({
     pageAlive = true
     const theme = getActiveTheme()
     createPageBackground()
-    let destination = getSelectedDestination() || getCustomDestination()
-    let standardDestination = getSelectedDestination()
+    let destination = getSelectedDestination()
 
     hmUI.createWidget(hmUI.widget.TEXT, {
       x: 12, y: layoutValue(22, 42), w: 168, h: layoutValue(24, 28),
@@ -105,7 +99,6 @@ Page({
         if (!pageAlive) return
         clearCustomDestination()
         destination = setSelectedDestination('Casa')
-        standardDestination = destination
         updateSelection(homeButton, true, theme)
         updateSelection(universityButton, false, theme)
         updateStatus(t('home_selected') + destinationLabel(destination))
@@ -122,14 +115,13 @@ Page({
         if (!pageAlive) return
         clearCustomDestination()
         destination = setSelectedDestination('Universidad')
-        standardDestination = destination
         updateSelection(homeButton, false, theme)
         updateSelection(universityButton, true, theme)
         updateStatus(t('home_selected') + destinationLabel(destination))
       }
     })
-    updateSelection(homeButton, standardDestination === 'Casa', theme)
-    updateSelection(universityButton, standardDestination === 'Universidad', theme)
+    updateSelection(homeButton, destination === 'Casa', theme)
+    updateSelection(universityButton, destination === 'Universidad', theme)
 
     statusWidget = hmUI.createWidget(hmUI.widget.TEXT, {
       x: 12, y: layoutValue(192, 270), w: 168, h: layoutValue(36, 42),
@@ -147,11 +139,11 @@ Page({
       text_size: layoutValue(26, 30), color: theme.onAccent,
       click_func: function () {
         if (!pageAlive) return
-        if (!standardDestination) {
+        destination = getSelectedDestination()
+        if (!destination) {
           updateStatus(t('home_first'))
           return
         }
-        setSelectedDestination(standardDestination)
         updateStatus(t('home_ready') + destinationLabel(destination))
         openPage('page/destination')
       }

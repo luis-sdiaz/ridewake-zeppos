@@ -1,5 +1,5 @@
 import { getLanguage, t } from '../utils/i18n'
-import { finishTripSession, getGlobalState, getSelectedDestination, startTripSession } from '../utils/session'
+import { finishTripSession, getDestinationDisplayName, getGlobalState, getSelectedDestination, startTripSession } from '../utils/session'
 import { advancePrediction, createPrediction, formatDistance, formatEta } from '../utils/prediction'
 import { destroyHaptics, vibrateForState } from '../utils/haptics'
 import { layoutValue } from '../utils/layout'
@@ -170,7 +170,7 @@ Page({
     runId = getGlobalState().tripRunId
     const theme = getActiveTheme()
     createPageBackground()
-    const destination = getSelectedDestination() || 'Casa'
+    const destination = getSelectedDestination()
     prediction = createPrediction(destination)
 
     createText(layoutValue(20, 38), layoutValue(22, 26), layoutValue(17, 19),
@@ -178,7 +178,7 @@ Page({
     statusWidget = createText(layoutValue(80, 120), layoutValue(20, 24), layoutValue(14, 16),
       '', theme.btnSecondaryText)
     createText(layoutValue(104, 152), layoutValue(20, 26), layoutValue(17, 19),
-      getLanguage() === 'en' ? (destination === 'Casa' ? 'Home' : 'University') : destination,
+      getDestinationDisplayName(destination, getLanguage()) || t('keyboard_unavailable'),
       theme.textPrimary)
     distanceWidget = createText(layoutValue(132, 194), layoutValue(36, 44), layoutValue(30, 36),
       '', theme.textPrimary)
@@ -200,7 +200,8 @@ Page({
     referenceWidget = createText(layoutValue(232, 330), layoutValue(34, 40), layoutValue(12, 14),
       '', theme.textSecondary, true)
     simulationWidget = createText(layoutValue(270, 378), layoutValue(14, 18), 11,
-      t('trip_local_data'), theme.textSecondary)
+      prediction && prediction.simulated ? t('trip_simulated_data') : t('trip_local_data'),
+      theme.textSecondary)
     hmUI.createWidget(hmUI.widget.BUTTON, {
       x: 24, y: layoutValue(292, 408), w: 144, h: layoutValue(42, 52),
       radius: layoutValue(21, 26), normal_color: theme.btnSecondary,
@@ -208,8 +209,15 @@ Page({
       text_size: layoutValue(14, 16), color: theme.btnSecondaryText,
       click_func: finishTrip
     })
-    renderPrediction()
-    startAutoAdvance()
+    if (prediction) {
+      renderPrediction()
+      startAutoAdvance()
+    } else {
+      tripStopped = true
+      updateWidget(statusWidget, {
+        text: t('keyboard_unavailable'), color: theme.alertEarly
+      })
+    }
   },
 
   onDestroy() {
