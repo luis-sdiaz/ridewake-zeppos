@@ -23,14 +23,15 @@ function destinationLabel(destination) {
 }
 
 function updateSelection(button, selected, theme) {
-  if (!button || typeof button.setProperty !== 'function' ||
+  if (!pageAlive || !button || typeof button.setProperty !== 'function' ||
       typeof hmUI === 'undefined' || !hmUI.prop ||
       hmUI.prop.MORE === undefined) return
   try {
     button.setProperty(hmUI.prop.MORE, {
       normal_color: selected ? theme.accent : theme.btnSecondary,
       press_color: selected ? theme.accentPress : theme.btnSecondaryPress,
-      color: selected ? theme.onAccent : theme.btnSecondaryText
+      color: selected ? theme.onAccent : theme.btnSecondaryText,
+      text_size: selected ? 19 : 16
     })
   } catch (error) {
     console.log('RideWake Inicio: selection update failed')
@@ -57,6 +58,7 @@ function updateStatus(text) {
 }
 
 function openPage(url) {
+  if (!pageAlive) return false
   try {
     if (typeof hmApp !== 'undefined' && typeof hmApp.gotoPage === 'function') {
       hmApp.gotoPage({ url: url })
@@ -71,6 +73,7 @@ function openPage(url) {
 
 Page({
   build() {
+    if (pageAlive) return
     pageAlive = true
     const theme = getActiveTheme()
     createPageBackground()
@@ -78,26 +81,28 @@ Page({
     let standardDestination = getSelectedDestination()
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      x: 12, y: layoutValue(24, 48), w: 168, h: layoutValue(26, 28),
-      text: t('brand'), text_size: 20, color: theme.title,
+      x: 12, y: layoutValue(22, 42), w: 168, h: layoutValue(24, 28),
+      text: t('brand'), text_size: 19, color: theme.title,
       align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.NONE
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      x: 12, y: layoutValue(58, 90), w: 168, h: 24,
-      text: t('home_question'), text_size: layoutValue(15, 16), color: theme.textPrimary,
+      x: 12, y: layoutValue(52, 82), w: 168, h: 24,
+      text: t('home_question'),
+      text_size: getLanguage() === 'en' ? 14 : layoutValue(15, 16), color: theme.textPrimary,
       align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.NONE
     })
 
     homeButton = hmUI.createWidget(hmUI.widget.BUTTON, {
-      x: layoutValue(20, 18), y: layoutValue(94, 136),
-      w: layoutValue(68, 72), h: layoutValue(68, 72), radius: layoutValue(34, 36),
+      x: 12, y: layoutValue(88, 132),
+      w: 78, h: layoutValue(54, 72), radius: layoutValue(18, 24),
       normal_color: theme.btnSecondary, press_color: theme.btnSecondaryPress,
-      text: 'Casa',
+      text: getLanguage() === 'en' ? 'Home' : 'Casa',
       text_size: 16, color: theme.btnSecondaryText,
       click_func: function () {
+        if (!pageAlive) return
         clearCustomDestination()
         destination = setSelectedDestination('Casa')
         standardDestination = destination
@@ -108,12 +113,13 @@ Page({
     })
 
     universityButton = hmUI.createWidget(hmUI.widget.BUTTON, {
-      x: layoutValue(104, 102), y: layoutValue(94, 136),
-      w: layoutValue(68, 72), h: layoutValue(68, 72), radius: layoutValue(34, 36),
+      x: 102, y: layoutValue(88, 132),
+      w: 78, h: layoutValue(54, 72), radius: layoutValue(18, 24),
       normal_color: theme.btnSecondary, press_color: theme.btnSecondaryPress,
       text: 'Uni',
       text_size: 16, color: theme.btnSecondaryText,
       click_func: function () {
+        if (!pageAlive) return
         clearCustomDestination()
         destination = setSelectedDestination('Universidad')
         standardDestination = destination
@@ -126,19 +132,21 @@ Page({
     updateSelection(universityButton, standardDestination === 'Universidad', theme)
 
     statusWidget = hmUI.createWidget(hmUI.widget.TEXT, {
-      x: 12, y: layoutValue(200, 258), w: 168, h: layoutValue(12, 28),
+      x: 12, y: layoutValue(192, 270), w: 168, h: layoutValue(36, 42),
       text: destination ? t('home_selected') + destinationLabel(destination) : t('home_choose'),
-      text_size: layoutValue(14, 15), color: theme.textSecondary,
+      text_size: 14, color: theme.textPrimary,
       align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.WRAP
     })
 
     hmUI.createWidget(hmUI.widget.BUTTON, {
-      x: layoutValue(60, 57), y: layoutValue(216, 296),
-      w: layoutValue(72, 78), h: layoutValue(72, 78), radius: layoutValue(36, 39),
+      x: 24, y: layoutValue(236, 330),
+      w: 144, h: layoutValue(50, 68), radius: layoutValue(25, 34),
       normal_color: theme.accent, press_color: theme.accentPress,
-      text: 'IR', text_size: layoutValue(20, 22), color: theme.onAccent,
+      text: getLanguage() === 'en' ? 'GO' : 'IR',
+      text_size: layoutValue(26, 30), color: theme.onAccent,
       click_func: function () {
+        if (!pageAlive) return
         if (!standardDestination) {
           updateStatus(t('home_first'))
           return
@@ -150,23 +158,23 @@ Page({
     })
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-      x: 12, y: layoutValue(290, 382), w: 168, h: layoutValue(16, 20),
-      text: t('home_start'), text_size: 14, color: theme.textSecondary,
+      x: 12, y: layoutValue(290, 404), w: 168, h: layoutValue(16, 20),
+      text: t('home_start'), text_size: 12, color: theme.textSecondary,
       align_h: hmUI.align.CENTER_H, align_v: hmUI.align.CENTER_V,
       text_style: hmUI.text_style.NONE
     })
 
     hmUI.createWidget(hmUI.widget.BUTTON, {
-      x: 44, y: layoutValue(313, 430), w: 104, h: layoutValue(32, 34), radius: 10,
-      normal_color: theme.btnSecondary, press_color: theme.btnSecondaryPress,
-      text: t('home_settings'), text_size: 11, color: theme.btnSecondaryText,
+      x: 44, y: layoutValue(312, 436), w: 104, h: layoutValue(28, 34), radius: 14,
+      normal_color: theme.bg, press_color: theme.btnSecondary,
+      text: t('home_settings'), text_size: 11, color: theme.textSecondary,
       click_func: function () {
         openPage('page/settings')
       }
     })
 
     hmUI.createWidget(hmUI.widget.BUTTON, {
-      x: 28, y: layoutValue(166, 214), w: 136, h: layoutValue(32, 36), radius: 10,
+      x: 12, y: layoutValue(152, 218), w: 168, h: layoutValue(32, 36), radius: 12,
       normal_color: theme.btnSecondary, press_color: theme.btnSecondaryPress,
       text: t('home_other_destination'), text_size: 11,
       color: theme.btnSecondaryText,

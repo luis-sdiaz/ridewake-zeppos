@@ -133,7 +133,8 @@ function run() {
         if (widget.type === 'BUTTON') {
           buttons.push(widget)
           const imageButton = name === 'index' && props.normal_src
-          const rectangular = (name === 'index' && props.w > 100) ||
+          const rectangular = name === 'index' ||
+            (name === 'settings' && props.w > 100) ||
             name === 'keyboard' || name === 'trip'
           if (imageButton) {
             check(props.w === 46 && props.h === 46 && props.radius === 23,
